@@ -1,3 +1,6 @@
+# DBMS page
+
+# libraries required for langchain
 import os
 import re
 from datetime import datetime
@@ -10,7 +13,10 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_core.runnables import RunnablePassthrough
 from dotenv import load_dotenv
+from langchain_community.utilities import GoogleSearchAPIWrapper
 import streamlit as st
+
+# libraries for generating pdfs
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
@@ -31,7 +37,7 @@ def chat_model():
 
 def get_embeddings():
     return HuggingFaceEmbeddings(
-        model='sentence-transformers/all-MiniLM-L6-v2',
+        model='sentence-transformers/all-MiniLM-L6-v2'
     )
 
 def clean_text(text):
@@ -40,6 +46,32 @@ def clean_text(text):
     text = re.sub(r'[^\w\s.,!?:;\-=<>()\'"*/+]', '', text)
     text = re.sub(r'(.)\1{3,}', r'\1', text)
     return text.strip()
+
+def web_search_fallback(query: str) -> str:
+    """
+    This is a Fallback function invoked when the model fails to generate output from the given context of the database.
+    """
+    try:
+        search = GoogleSearchAPIWrapper()
+        search_results = search.run(query)
+
+        llm = chat_model()
+
+        structure_prompt = f"""You are a DBMS expert assistant. 
+        A user asked: "{query}"
+
+        Here are the web search results:
+        {search_results}
+
+        Please provide a clear, structured answer to the user's question based on these search results.
+        Keep it concise and relevant to DBMS concepts.
+        """ 
+
+        response = llm.invoke(structure_prompt)
+        return response.content
+    
+    except Exception as e:
+        return f"Apologies, I couldn't find the relevant information right now. Please try again later.\nError: {str(e)}"
 
 def load_and_create_vectordb(vectordb_path='vectordb/dbms_faiss'):
     """Load PDF, clean text, create chunks, and build FAISS vector database"""
@@ -190,7 +222,11 @@ def generate_chat_pdf(messages):
 
 def main():
     load_dotenv()
-    st.set_page_config(page_title="DBMS Chatbot 🤖", layout="wide")
+    st.set_page_config(
+        page_title="DBMS Chatbot ",
+        page_icon="🤖",
+        layout="wide"
+    )
     st.title("📘 DBMS Chatbot")
 
     with st.sidebar:
@@ -329,6 +365,13 @@ DBMS Context:
             with st.spinner("Thinking..."):
                 response = rag_chain.invoke(user_input)
                 answer = response.content
+
+            if "FALLBACK_TRIGGER" in answer or "don't have enough information" in answer.lower():
+                with st.spinner("🌐 Searching the web for more information..."):
+                    answer = web_search_fallback(user_input)
+
+                    # Adding a note that this came from the web search...
+                    answer = f"ℹ️ *From web search:*\n\n{answer} "
         
         # Add to chat_history as LangChain message objects
         st.session_state.dbms_chat_history.append(HumanMessage(content=user_input))
