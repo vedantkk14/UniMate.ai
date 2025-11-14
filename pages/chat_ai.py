@@ -90,7 +90,7 @@ def load_and_create_vectordb(vectordb_path='vectordb/ai_faiss'):
             st.warning(f"⚠️ Could not load existing database: {str(e)}. Creating new one...")
 
 
-    # creating avector database if it dosen't exists
+    # creating a vector database if it dosen't exists
     st.info("🔨 Creating new vector database (this may take a moment)...")
     loader = PyPDFLoader(file_path='pdfs/ai_tb.pdf')
     docs = loader.load()

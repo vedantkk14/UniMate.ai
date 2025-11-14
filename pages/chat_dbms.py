@@ -225,7 +225,7 @@ def main():
     st.set_page_config(
         page_title="DBMS Chatbot ",
         page_icon="🤖",
-        layout="wide"
+        layout="centered"
     )
     st.title("📘 DBMS Chatbot")
 
