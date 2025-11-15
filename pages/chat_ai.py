@@ -18,7 +18,7 @@ from dotenv import load_dotenv
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, KeepTogether
 from reportlab.lib.enums import TA_LEFT, TA_RIGHT
 from reportlab.lib.colors import HexColor
 from datetime import datetime
@@ -114,12 +114,39 @@ def load_and_create_vectordb(vectordb_path='vectordb/ai_faiss'):
     return vectordb
 
 
+def clean_and_format_pdf_text(text):
+    """Clean markdown and special characters, convert to HTML"""
+    # Replace HTML special characters first
+    text = text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+    
+    # Convert markdown bold to HTML bold
+    text = re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', text)
+    
+    # Convert markdown italic to HTML italic
+    text = re.sub(r'\*(.+?)\*', r'<i>\1</i>', text)
+    
+    # Convert backticks to monospace
+    text = re.sub(r'`(.+?)`', r'<font face="Courier">\1</font>', text)
+    
+    # Convert line breaks to HTML breaks
+    text = text.replace('\n', '<br/>')
+    
+    # Handle bullet points
+    text = re.sub(r'^\s*[-*]\s+', '• ', text, flags=re.MULTILINE)
+    
+    return text
+
 def generate_chat_pdf(messages):
     """Generate a PDF from chat messages"""
     buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter,
-                           rightMargin=72, leftMargin=72,
-                           topMargin=72, bottomMargin=18)
+    doc = SimpleDocTemplate(
+        buffer, 
+        pagesize=letter,
+        rightMargin=72, 
+        leftMargin=72,
+        topMargin=72, 
+        bottomMargin=72
+    )
     
     # Container for the 'Flowable' objects
     elements = []
@@ -143,13 +170,12 @@ def generate_chat_pdf(messages):
         parent=styles['Normal'],
         fontSize=11,
         textColor=HexColor('#1f2937'),
-        leftIndent=20,
-        rightIndent=20,
-        spaceAfter=6,
-        spaceBefore=12,
+        leftIndent=10,
+        rightIndent=10,
+        spaceAfter=12,
+        spaceBefore=6,
         backColor=HexColor('#dbeafe'),
-        borderPadding=10,
-        borderRadius=5
+        leading=14  # Line spacing
     )
     
     # Answer style (assistant)
@@ -158,22 +184,22 @@ def generate_chat_pdf(messages):
         parent=styles['Normal'],
         fontSize=10,
         textColor=HexColor('#374151'),
-        leftIndent=20,
-        rightIndent=20,
-        spaceAfter=20,
+        leftIndent=10,
+        rightIndent=10,
+        spaceAfter=12,
         spaceBefore=6,
         backColor=HexColor('#f3f4f6'),
-        borderPadding=10,
-        borderRadius=5
+        leading=13  # Line spacing
     )
     
     # Label styles
     label_style = ParagraphStyle(
         'Label',
         parent=styles['Normal'],
-        fontSize=9,
+        fontSize=10,
         textColor=HexColor('#6b7280'),
-        spaceAfter=3
+        spaceAfter=4,
+        spaceBefore=8
     )
     
     # Add title
@@ -189,27 +215,28 @@ def generate_chat_pdf(messages):
     elements.append(Spacer(1, 0.3*inch))
     
     # Add messages
-    for i, message in enumerate(messages, 1):
+    question_count = 0
+    for message in messages:
         if message["role"] == "user":
-            # Add Q label
-            q_label = Paragraph(f"<b>Question {i//2 + 1}:</b>", label_style)
-            elements.append(q_label)
+            question_count += 1
             
-            # Add question with HTML escaping
-            question_text = message["content"].replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+            # Create question block
+            q_label = Paragraph(f"<b>Question {question_count}:</b>", label_style)
+            question_text = clean_and_format_pdf_text(message["content"])
             question = Paragraph(question_text, question_style)
-            elements.append(question)
+            
+            # Keep label and question together
+            elements.append(KeepTogether([q_label, question]))
             
         else:  # assistant
-            # Add A label
+            # Create answer block
             a_label = Paragraph("<b>Answer:</b>", label_style)
-            elements.append(a_label)
-            
-            # Add answer with HTML escaping
-            answer_text = message["content"].replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+            answer_text = clean_and_format_pdf_text(message["content"])
             answer = Paragraph(answer_text, answer_style)
-            elements.append(answer)
-            elements.append(Spacer(1, 0.2*inch))
+            
+            # Keep label and answer together
+            elements.append(KeepTogether([a_label, answer]))
+            elements.append(Spacer(1, 0.15*inch))
     
     # Build PDF
     doc.build(elements)
