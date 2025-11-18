@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 import streamlit as st
 from PyPDF2 import PdfReader
 from datetime import datetime
+import re
 
 # libraries for generating pdfs
 from reportlab.lib.pagesizes import letter
@@ -35,9 +36,39 @@ def get_embeddings():
         model='sentence-transformers/all-MiniLM-L6-v2'
     )
 
+def clean_text(text):
+    """
+    Clean text extracted from PDF by removing extra whitespace, 
+    special characters, and normalizing formatting
+    """
+    if not text:
+        return ""
+    
+    # Remove excessive whitespace and newlines
+    text = re.sub(r'\s+', ' ', text)
+    
+    # Remove special characters but keep basic punctuation
+    text = re.sub(r'[^\w\s.,;:?!()\-\'\"@#$%&*+=/<>]', '', text)
+    
+    # Remove multiple consecutive punctuation marks
+    text = re.sub(r'([.,;:!?]){2,}', r'\1', text)
+    
+    # Normalize quotes
+    text = text.replace('"', '"').replace('"', '"')
+    text = text.replace(''', "'").replace(''', "'")
+    
+    # Remove page numbers (common pattern: Page X or X)
+    text = re.sub(r'\bPage\s+\d+\b', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'^\d+$', '', text, flags=re.MULTILINE)
+    
+    # Strip leading/trailing whitespace
+    text = text.strip()
+    
+    return text
+
 def web_search_fallback(query: str) -> str:
     """
-    This is a Fallback function invoked when the model fails to generate output from the given context of the database.
+    Fallback function to search the web when information is not in the model's knowledge base
     """
     try:
         search = GoogleSearchAPIWrapper()
@@ -45,21 +76,21 @@ def web_search_fallback(query: str) -> str:
 
         llm = chat_model()
 
-        structure_prompt = f"""You are a DBMS expert assistant. 
+        structure_prompt = f"""You are a friendly and helpful AI assistant. 
         A user asked: "{query}"
 
         Here are the web search results:
         {search_results}
 
-        Please provide a clear, structured answer to the user's question based on these search results.
-        Keep it concise and relevant to DBMS concepts.
+        Please provide a clear, friendly, and structured answer to the user's question based on these search results.
+        Keep it conversational, concise, and helpful.
         """ 
 
         response = llm.invoke(structure_prompt)
         return response.content
     
     except Exception as e:
-        return f"Apologies, I couldn't find the relevant information right now. Please try again later.\nError: {str(e)}"
+        return f"I apologize, but I couldn't find the relevant information right now. Please try again later or rephrase your question.\nError: {str(e)}"
 
 def generate_chat_pdf(messages):
     """Generate a PDF from chat messages"""
@@ -124,7 +155,7 @@ def generate_chat_pdf(messages):
     )
     
     # Add title
-    title = Paragraph("DBMS Chatbot Conversation", title_style)
+    title = Paragraph("AI Assistant Conversation", title_style)
     elements.append(title)
     
     # Add timestamp
@@ -167,10 +198,63 @@ def generate_chat_pdf(messages):
     
     return pdf_data
 
+def get_general_response(user_question, chat_history):
+    """
+    Get response from the AI model using its own knowledge base
+    """
+    try:
+        llm = chat_model()
+        
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", """You are a friendly, helpful, and knowledgeable AI assistant. 
+Your goal is to assist users with their questions in a conversational and approachable manner.
+
+Guidelines:
+- Be warm, friendly, and professional
+- Provide clear and helpful answers based on your knowledge
+- If you're unsure about something, be honest about it
+- Keep responses concise but informative
+- Use a conversational tone"""),
+            MessagesPlaceholder(variable_name="chat_history"),
+            ("human", "{question}")
+        ])
+        
+        chain = (
+            {
+                "chat_history": lambda _: chat_history,
+                "question": RunnablePassthrough()
+            }
+            | prompt
+            | llm
+        )
+        
+        response = chain.invoke(user_question)
+        answer = response.content
+        
+        # Check if the model indicates it doesn't know
+        uncertain_phrases = [
+            "i don't know",
+            "i'm not sure",
+            "i cannot provide",
+            "i don't have information",
+            "beyond my knowledge",
+            "i lack information"
+        ]
+        
+        if any(phrase in answer.lower() for phrase in uncertain_phrases):
+            # Use web search fallback
+            answer = web_search_fallback(user_question)
+            answer = "🌐 **Searched the web for you:**\n\n" + answer
+        
+        return answer
+    
+    except Exception as e:
+        return f"I encountered an error processing your request. Please try again.\nError: {str(e)}"
+
 # ✅ MAIN APP
 def main():
     load_dotenv()
-    st.set_page_config(page_title="ChatBot..", layout="wide", page_icon="📜")
+    st.set_page_config(page_title="AI Assistant", layout="wide", page_icon="🤖")
     
     # Initialize session state
     if "messages" not in st.session_state:
@@ -180,13 +264,14 @@ def main():
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
     
-    st.header("📄 PDF Chatbot")
+    st.header("🤖 AI Assistant - Your Friendly Helper")
     
     # Sidebar with PDF upload and controls
     with st.sidebar:
         
         # PDF Upload Section
-        st.markdown("### 📁 Upload Document")
+        st.markdown("### 📁 Upload Document (Optional)")
+        st.markdown("Upload a PDF to ask questions about its content")
         pdf = st.file_uploader("Upload your PDF:", type=["pdf"], label_visibility="collapsed")
         
         st.markdown("---")  
@@ -199,7 +284,7 @@ def main():
             st.session_state.chat_history = []
             st.rerun()
         
-        if st.button("🔄 Reset (Upload New PDF)", use_container_width=True):
+        if st.button("🔄 Reset Everything", use_container_width=True):
             st.session_state.messages = []
             st.session_state.knowledge_base = None
             st.session_state.chat_history = []
@@ -207,19 +292,19 @@ def main():
         
         st.markdown("---")
 
-        st.markdown("### 📜 Generate PDF")
+        st.markdown("### 📜 Export Chat")
         
         # PDF generation button
         if st.button("📥 Download Conversation as PDF", use_container_width=True):
-            if "dbms_messages" in st.session_state and st.session_state.dbms_messages:
+            if st.session_state.messages:
                 try:
-                    pdf_data = generate_chat_pdf(st.session_state.dbms_messages)
+                    pdf_data = generate_chat_pdf(st.session_state.messages)
                     
                     # Create download button
                     st.download_button(
                         label="💾 Click to Download PDF",
                         data=pdf_data,
-                        file_name=f"dbms_chat_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                        file_name=f"ai_chat_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
                         mime="application/pdf",
                         use_container_width=True
                     )
@@ -228,19 +313,30 @@ def main():
                     st.error(f"❌ Error generating PDF: {str(e)}")
             else:
                 st.warning("⚠️ No conversation to export. Start chatting first!")
+        
+        st.markdown("---")
+        st.markdown("### ℹ️ About")
+        st.markdown("""
+        I'm your friendly AI assistant! I can:
+        - Answer general questions
+        - Search the web when needed
+        - Analyze PDF documents
+        - Remember our conversation
+        """)
     
+    # Process PDF if uploaded
     if pdf is not None:
-        # Process PDF only if not already processed
         if st.session_state.knowledge_base is None:
             with st.spinner("Processing PDF..."):
                 pdf_reader = PdfReader(pdf)
                 
-                # Extract text
+                # Extract and clean text
                 text = ""
                 for page in pdf_reader.pages:
                     extracted = page.extract_text()
                     if extracted:
-                        text += extracted
+                        cleaned = clean_text(extracted)
+                        text += cleaned + " "
                 
                 # Split into chunks
                 text_splitter = CharacterTextSplitter(
@@ -254,28 +350,30 @@ def main():
                 # Generate embeddings + Vector DB
                 embeddings = get_embeddings()
                 st.session_state.knowledge_base = FAISS.from_texts(chunks, embeddings)
-                st.success("PDF processed successfully!")
+                st.success("✅ PDF processed successfully! You can now ask questions about it.")
+    
+    # User input at the bottom
+    user_question = st.chat_input("Ask me anything..." if pdf is None else "Ask about the PDF or anything else...")
+    
+    if user_question:
+        # Add user message to chat history
+        st.session_state.messages.append({"role": "user", "content": user_question})
         
-        # User input at the bottom (placed before chat display)
-        user_question = st.chat_input("Ask anything:")
+        # Capture chat history before processing
+        current_chat_history = st.session_state.chat_history.copy()
         
-        if user_question:
-            # Add user message to chat history
-            st.session_state.messages.append({"role": "user", "content": user_question})
-            
-            # Capture chat history before building the chain
-            current_chat_history = st.session_state.chat_history.copy()
-            
-            # ✅ Define the RAG prompt with MessagesPlaceholder
+        # Determine if we should use PDF RAG or general knowledge
+        if st.session_state.knowledge_base is not None:
+            # ✅ PDF RAG Mode
             prompt = ChatPromptTemplate.from_messages([
-                ("system", """You are a helpful and highly knowledgeable assistant. 
-Your task is to answer the user's question using the context extracted from the PDF and the previous conversation.
+                ("system", """You are a helpful and friendly AI assistant. 
+Your task is to answer the user's question using the context from the uploaded PDF and the conversation history.
 
-Guidelines for your response:
-- Provide a **detailed yet concise** explanation.
-- Use **clear, simple, and structured** language.
-- If the answer is **not present** in the PDF context, respond only with: "I cannot find that in the document."
-- Do not add unrelated information beyond what is asked.
+Guidelines:
+- Provide detailed yet concise explanations
+- Use clear and structured language
+- If the answer is NOT in the PDF context, say: "I cannot find that information in the uploaded document. Let me search the web for you."
+- Be conversational and helpful
 
 --- 
 PDF Context:
@@ -284,7 +382,6 @@ PDF Context:
                 ("human", "{question}")
             ])
             
-            # ✅ Build LCEL RAG Chain
             retriever = st.session_state.knowledge_base.as_retriever()
             rag_chain = (
                 {
@@ -296,22 +393,31 @@ PDF Context:
                 | chat_model()
             )
             
-            # ✅ Get response
             with st.spinner("Thinking..."):
                 response = rag_chain.invoke(user_question)
                 answer = response.content
-            
-            # Add to chat_history as LangChain message objects
-            st.session_state.chat_history.append(HumanMessage(content=user_question))
-            st.session_state.chat_history.append(AIMessage(content=answer))
-            
-            # Add assistant response to display messages
-            st.session_state.messages.append({"role": "assistant", "content": answer})
-            
-            # Rerun to update chat display
-            st.rerun()
+                
+                # If not in PDF, fallback to web search
+                if "cannot find that" in answer.lower() or "not in the document" in answer.lower():
+                    web_answer = web_search_fallback(user_question)
+                    answer = f"{answer}\n\n🌐 **Web Search Result:**\n{web_answer}"
+        else:
+            # ✅ General Knowledge Mode
+            with st.spinner("Thinking..."):
+                answer = get_general_response(user_question, current_chat_history)
         
-        # Display chat history
+        # Add to chat_history as LangChain message objects
+        st.session_state.chat_history.append(HumanMessage(content=user_question))
+        st.session_state.chat_history.append(AIMessage(content=answer))
+        
+        # Add assistant response to display messages
+        st.session_state.messages.append({"role": "assistant", "content": answer})
+        
+        # Rerun to update chat display
+        st.rerun()
+    
+    # Display chat history
+    if st.session_state.messages:
         st.markdown("---")
         chat_container = st.container()
         
@@ -338,7 +444,7 @@ PDF Context:
                     </div>
                     """, unsafe_allow_html=True)
     else:
-        st.info("👈 Please upload a PDF from the sidebar to start chatting!")
+        st.info("👋 Hi! I'm your AI assistant. Ask me anything or upload a PDF to get started!")
 
 if __name__ == "__main__":
     main()
