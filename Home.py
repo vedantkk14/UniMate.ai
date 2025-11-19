@@ -20,7 +20,7 @@ from reportlab.lib.enums import TA_LEFT, TA_RIGHT
 from reportlab.lib.colors import HexColor
 import io
 
-# ✅ LLM Model (HuggingFace Endpoint)
+# LLM Model (HuggingFace Endpoint)
 def chat_model():
     llm = HuggingFaceEndpoint(
         repo_id="Qwen/Qwen2.5-7B-Instruct",
@@ -30,7 +30,7 @@ def chat_model():
     )
     return ChatHuggingFace(llm=llm)
 
-# ✅ Embedding model
+# Embedding model
 def get_embeddings():
     return HuggingFaceEmbeddings(
         model='sentence-transformers/all-MiniLM-L6-v2'
@@ -251,7 +251,7 @@ Guidelines:
     except Exception as e:
         return f"I encountered an error processing your request. Please try again.\nError: {str(e)}"
 
-# ✅ MAIN APP
+# MAIN APP
 def main():
     load_dotenv()
     st.set_page_config(page_title="AI Assistant", layout="centered", page_icon="🤖")
@@ -364,7 +364,7 @@ def main():
         
         # Determine if we should use PDF RAG or general knowledge
         if st.session_state.knowledge_base is not None:
-            # ✅ PDF RAG Mode
+            # PDF RAG Mode
             prompt = ChatPromptTemplate.from_messages([
                 ("system", """You are a helpful and friendly AI assistant. 
 Your task is to answer the user's question using the context from the uploaded PDF and the conversation history.
@@ -402,7 +402,7 @@ PDF Context:
                     web_answer = web_search_fallback(user_question)
                     answer = f"{answer}\n\n🌐 **Web Search Result:**\n{web_answer}"
         else:
-            # ✅ General Knowledge Mode
+            # General Knowledge Mode
             with st.spinner("Thinking..."):
                 answer = get_general_response(user_question, current_chat_history)
         
