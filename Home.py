@@ -96,8 +96,8 @@ def generate_chat_pdf(messages):
     """Generate a PDF from chat messages"""
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter,
-                           rightMargin=72, leftMargin=72,
-                           topMargin=72, bottomMargin=18)
+                    rightMargin=72, leftMargin=72,
+                    topMargin=72, bottomMargin=18)
     
     # Container for the 'Flowable' objects
     elements = []
