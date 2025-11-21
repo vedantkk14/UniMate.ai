@@ -456,6 +456,84 @@ def generate_chat_pdf(messages):
     
     return pdf_data
 
+def generate_quiz_from_history(chat_history):
+    """
+    Generates a quiz based on the provided chat history.
+    """
+    if not chat_history:
+        return None
+
+    # Convert list of messages to a single string for the prompt
+    history_text = "\n".join([f"{msg.type}: {msg.content}" for msg in chat_history])
+
+    llm = chat_model()
+
+    # Strict prompt to ensure consistent formatting for parsing
+    quiz_prompt = f"""
+    You are a teacher. Based strictly on the following conversation history about Human Computer Interface(HCI), generate 5 multiple-choice questions (MCQs) to test the user's understanding of the topics discussed.
+    
+    Conversation History:
+    {history_text}
+
+    Rules:
+    1. Generate exactly 5 questions.
+    2. Provide 4 options (A, B, C, D) for each question.
+    3. Indicate the correct answer clearly at the end of each question block.
+    4. Do not include any introductory or concluding text. Use the exact format below.
+
+    Format Example:
+    Q1: What is normalization?
+    A) Process of removing data
+    B) Process of organizing data
+    C) Process of deleting tables
+    D) None of the above
+    Answer: B
+    
+    Q2: ...
+    """
+    
+    try:
+        response = llm.invoke(quiz_prompt)
+        return parse_quiz_content(response.content)
+    except Exception as e:
+        st.error(f"Error generating quiz: {e}")
+        return None
+
+def parse_quiz_content(text):
+    """
+    Parses the LLM output text into a structured list of dictionaries.
+    """
+    questions = []
+    # Split by "Q" followed by a number and a colon/dot
+    blocks = re.split(r'Q\d+[:.]', text)
+    
+    for block in blocks:
+        if not block.strip():
+            continue
+            
+        lines = [line.strip() for line in block.strip().split('\n') if line.strip()]
+        if len(lines) < 5:
+            continue
+            
+        question_text = lines[0]
+        options = []
+        correct_answer = None
+        
+        for line in lines[1:]:
+            if line.upper().startswith(('A)', 'B)', 'C)', 'D)')):
+                options.append(line)
+            elif line.upper().startswith('ANSWER:'):
+                correct_answer = line.split(':')[-1].strip().upper()
+        
+        if question_text and len(options) >= 4 and correct_answer:
+            questions.append({
+                "question": question_text,
+                "options": options,
+                "correct": correct_answer
+            })
+            
+    return questions
+
 def main():
     load_dotenv()
     st.set_page_config(
@@ -467,57 +545,21 @@ def main():
 
     with st.sidebar:
 
-        st.markdown("### 🎛️ Chat Controls")
-
-        if st.button("🗑️ Clear Chat History", use_container_width=True):
-            st.session_state.hci_messages = []
-            st.session_state.hci_chat_history = []
-            st.rerun()
-
-        st.markdown("---")
+        st.markdown("### 📝 Knowledge Check")
         
-        st.markdown("### ⚙️ Database Settings")
+        if st.button("Generate Quiz from Chat", use_container_width=True):
+            if len(st.session_state.hci_chat_history) < 2:
+                st.warning("⚠️ Chat more with the bot first to generate a context-aware quiz!")
+            else:
+                with st.spinner("👩‍🏫 Analyzing conversation and crafting questions..."):
+                    quiz = generate_quiz_from_history(st.session_state.hci_chat_history[-10:])
+                    if quiz:
+                        st.session_state.quiz_data = quiz
+                        st.success("✅ Quiz generated! Scroll down to take it.")
+                    else:
+                        st.error("❌ Failed to generate valid questions. Try again.")
         
-        # Test mode toggle
-        test_mode = st.checkbox("🧪 Test Mode (10 pages only)", value=False, 
-                               help="Process only first 10 pages for faster testing")
-        
-        # Button to clear OCR cache
-        if st.button("🗑️ Clear OCR Cache", use_container_width=True):
-            cache_dir = 'cache'
-            try:
-                if os.path.exists(cache_dir):
-                    import shutil
-                    shutil.rmtree(cache_dir)
-                    st.success("✅ OCR cache cleared!")
-                else:
-                    st.info("ℹ️ No cache to clear")
-            except Exception as e:
-                st.error(f"❌ Error clearing cache: {str(e)}")
-        
-        # Button to recreate vector database
-        if st.button("🔄 Rebuild Vector Database", use_container_width=True):
-            vectordb_path = 'vectordb/hci_faiss'
-            try:
-                # Remove existing database
-                if os.path.exists(vectordb_path):
-                    import shutil
-                    shutil.rmtree(vectordb_path)
-                    st.info("🗑️ Removed old database...")
-                
-                # Recreate database
-                with st.spinner("Rebuilding vector database..."):
-                    st.session_state.hci_vectordb = load_and_create_vectordb(test_mode=test_mode)
-                    
-                if st.session_state.hci_vectordb:
-                    st.success("✅ Database rebuilt successfully!")
-                    st.rerun()
-                else:
-                    st.error("❌ Failed to rebuild database")
-            except Exception as e:
-                st.error(f"❌ Error rebuilding database: {str(e)}")
-        
-        st.markdown("---")
+        st.markdown("----")
 
         st.markdown("### 📜 Generate PDF")
 
@@ -543,6 +585,57 @@ def main():
         
         st.markdown("----")
 
+        st.markdown("### 🎛️ Chat Controls")
+
+        if st.button("🗑️ Clear Chat History", use_container_width=True):
+            st.session_state.hci_messages = []
+            st.session_state.hci_chat_history = []
+            st.rerun()
+
+        st.markdown("---")
+        
+        # st.markdown("### ⚙️ Database Settings")
+        
+        # # Test mode toggle
+        # test_mode = st.checkbox("🧪 Test Mode (10 pages only)", value=False, 
+        #                        help="Process only first 10 pages for faster testing")
+        
+        # # Button to clear OCR cache
+        # if st.button("🗑️ Clear OCR Cache", use_container_width=True):
+        #     cache_dir = 'cache'
+        #     try:
+        #         if os.path.exists(cache_dir):
+        #             import shutil
+        #             shutil.rmtree(cache_dir)
+        #             st.success("✅ OCR cache cleared!")
+        #         else:
+        #             st.info("ℹ️ No cache to clear")
+        #     except Exception as e:
+        #         st.error(f"❌ Error clearing cache: {str(e)}")
+        
+        # # Button to recreate vector database
+        # if st.button("🔄 Rebuild Vector Database", use_container_width=True):
+        #     vectordb_path = 'vectordb/hci_faiss'
+        #     try:
+        #         # Remove existing database
+        #         if os.path.exists(vectordb_path):
+        #             import shutil
+        #             shutil.rmtree(vectordb_path)
+        #             st.info("🗑️ Removed old database...")
+                
+        #         # Recreate database
+        #         with st.spinner("Rebuilding vector database..."):
+        #             st.session_state.hci_vectordb = load_and_create_vectordb(test_mode=test_mode)
+                    
+        #         if st.session_state.hci_vectordb:
+        #             st.success("✅ Database rebuilt successfully!")
+        #             st.rerun()
+        #         else:
+        #             st.error("❌ Failed to rebuild database")
+        #     except Exception as e:
+        #         st.error(f"❌ Error rebuilding database: {str(e)}")
+        # st.markdown("---")
+
         # Status indicator
         st.markdown("### 📊 Status")
         if "hci_vectordb" in st.session_state and st.session_state.hci_vectordb:
@@ -556,6 +649,10 @@ def main():
     
     if "hci_chat_history" not in st.session_state:
         st.session_state.hci_chat_history = []
+
+    # for quiz questions
+    if "quiz_data" not in st.session_state:
+        st.session_state.quiz_data = None
     
     if "hci_vectordb" not in st.session_state:
         st.info("🚀 Initializing HCI knowledge base...")
@@ -693,6 +790,48 @@ AI Context:
                     </span>
                 </div>
                 """, unsafe_allow_html=True)
+
+    if st.session_state.quiz_data:
+        st.markdown("---")
+        with st.expander("📝 Take the Quiz", expanded=True):
+            st.subheader("Test Your Understanding")
+            
+            with st.form("quiz_form"):
+                score = 0
+                user_answers = {}
+                
+                for i, q in enumerate(st.session_state.quiz_data):
+                    st.markdown(f"**{i+1}. {q['question']}**")
+                    # Radio button for options
+                    user_choice = st.radio(
+                        "Select an answer:", 
+                        q['options'], 
+                        key=f"q_{i}",
+                        index=None # No default selection
+                    )
+                    user_answers[i] = user_choice
+                    st.markdown("---")
+                
+                submitted = st.form_submit_button("Submit Answers")
+                
+                if submitted:
+                    correct_count = 0
+                    for i, q in enumerate(st.session_state.quiz_data):
+                        user_choice = user_answers.get(i)
+                        # Extract the letter (A, B, C, D) from the user's choice string
+                        user_letter = user_choice.split(')')[0] if user_choice else None
+                        
+                        if user_letter == q['correct']:
+                            correct_count += 1
+                            st.success(f"Q{i+1}: Correct!")
+                        else:
+                            st.error(f"Q{i+1}: Incorrect. The correct answer was {q['correct']}.")
+                    
+                    percentage = (correct_count / len(st.session_state.quiz_data)) * 100
+                    st.metric(label="Final Score", value=f"{percentage}%", delta=f"{correct_count}/{len(st.session_state.quiz_data)} Correct")
+                    
+                    if percentage == 100:
+                        st.balloons()
 
 if __name__ == "__main__":
     main()

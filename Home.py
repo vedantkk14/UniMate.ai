@@ -251,6 +251,84 @@ Guidelines:
     except Exception as e:
         return f"I encountered an error processing your request. Please try again.\nError: {str(e)}"
 
+def generate_quiz_from_history(chat_history):
+    """
+    Generates a quiz based on the provided chat history.
+    """
+    if not chat_history:
+        return None
+
+    # Convert list of messages to a single string for the prompt
+    history_text = "\n".join([f"{msg.type}: {msg.content}" for msg in chat_history])
+
+    llm = chat_model()
+
+    # Strict prompt to ensure consistent formatting for parsing
+    quiz_prompt = f"""
+    You are a teacher. Based strictly on the following conversation history, generate 5 multiple-choice questions (MCQs) to test the user's understanding of the topics discussed.
+    
+    Conversation History:
+    {history_text}
+
+    Rules:
+    1. Generate exactly 5 questions.
+    2. Provide 4 options (A, B, C, D) for each question.
+    3. Indicate the correct answer clearly at the end of each question block.
+    4. Do not include any introductory or concluding text. Use the exact format below.
+
+    Format Example:
+    Q1: What is normalization?
+    A) Process of removing data
+    B) Process of organizing data
+    C) Process of deleting tables
+    D) None of the above
+    Answer: B
+    
+    Q2: ...
+    """
+    
+    try:
+        response = llm.invoke(quiz_prompt)
+        return parse_quiz_content(response.content)
+    except Exception as e:
+        st.error(f"Error generating quiz: {e}")
+        return None
+
+def parse_quiz_content(text):
+    """
+    Parses the LLM output text into a structured list of dictionaries.
+    """
+    questions = []
+    # Split by "Q" followed by a number and a colon/dot
+    blocks = re.split(r'Q\d+[:.]', text)
+    
+    for block in blocks:
+        if not block.strip():
+            continue
+            
+        lines = [line.strip() for line in block.strip().split('\n') if line.strip()]
+        if len(lines) < 5:
+            continue
+            
+        question_text = lines[0]
+        options = []
+        correct_answer = None
+        
+        for line in lines[1:]:
+            if line.upper().startswith(('A)', 'B)', 'C)', 'D)')):
+                options.append(line)
+            elif line.upper().startswith('ANSWER:'):
+                correct_answer = line.split(':')[-1].strip().upper()
+        
+        if question_text and len(options) >= 4 and correct_answer:
+            questions.append({
+                "question": question_text,
+                "options": options,
+                "correct": correct_answer
+            })
+            
+    return questions
+
 # MAIN APP
 def main():
     load_dotenv()
@@ -263,6 +341,9 @@ def main():
         st.session_state.knowledge_base = None
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
+    # for quiz questions
+    if "quiz_data" not in st.session_state:
+        st.session_state.quiz_data = None
     
     st.header("🤖 AI Assistant - Your Friendly Helper")
     
@@ -275,6 +356,22 @@ def main():
         pdf = st.file_uploader("Upload your PDF:", type=["pdf"], label_visibility="collapsed")
         
         st.markdown("---")  
+
+        st.markdown("### 📝 Knowledge Check")
+        
+        if st.button("Generate Quiz from Chat", use_container_width=True):
+            if len(st.session_state.chat_history) < 2:
+                st.warning("⚠️ Chat more with the bot first to generate a context-aware quiz!")
+            else:
+                with st.spinner("👩‍🏫 Analyzing conversation and crafting questions..."):
+                    quiz = generate_quiz_from_history(st.session_state.chat_history[-10:])
+                    if quiz:
+                        st.session_state.quiz_data = quiz
+                        st.success("✅ Quiz generated! Scroll down to take it.")
+                    else:
+                        st.error("❌ Failed to generate valid questions. Try again.")
+        
+        st.markdown("----")
         
         # Chat Controls Section
         st.markdown("### 🎛️ Chat Controls")
