@@ -357,7 +357,7 @@ def extract_questions_with_numbers(text):
         print(f"Error extracting: {e}")
         return []
 
-def process_pyq_pdfs(folder_path=None):
+def process_pyq_pdfs(folder_path=None, force_reprocess=False):
     # --- PATH SETUP ---
     if folder_path is None:
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -365,6 +365,17 @@ def process_pyq_pdfs(folder_path=None):
         
     output_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "PYQs/pyqs_master_dbms.json")
 
+    # --- NEW LOGIC: CHECK IF JSON EXISTS ---
+    if os.path.exists(output_file) and not force_reprocess:
+        # st.info(f"📂 Loading cached PYQ analysis from {output_file}...") # Optional debug print
+        try:
+            with open(output_file, 'r') as f:
+                return json.load(f)
+        except Exception as e:
+            st.error(f"Error loading cached JSON: {e}. Reprocessing...")
+            # If loading fails, we allow the code to continue to regeneration
+
+    # --- BELOW IS THE EXISTING PROCESSING LOGIC ---
     if not os.path.exists(folder_path):
         return "FOLDER_MISSING"
 
@@ -373,7 +384,6 @@ def process_pyq_pdfs(folder_path=None):
         return "NO_FILES"
 
     # Initialize Data Structure for Units
-    # Structure: { "Unit 3": [ {question: "...", count: 1}, ... ], "Unit 4": ... }
     unit_database = {
         "Unit 3": [],
         "Unit 4": [],
@@ -424,6 +434,7 @@ def process_pyq_pdfs(folder_path=None):
         unit_database[unit].sort(key=lambda x: x['count'], reverse=True)
 
     # Save
+    os.makedirs(os.path.dirname(output_file), exist_ok=True) # Ensure directory exists
     with open(output_file, 'w') as f:
         json.dump(unit_database, f)
         
@@ -458,19 +469,31 @@ def main():
 
         st.markdown("### 📊 Exam Analysis")
         
-        if st.button("🧠 Analyze PYQ Papers", use_container_width=True):
-            with st.spinner("Reading PDFs, extracting questions, and checking duplicates..."):
-                # Run the processor
-                result = process_pyq_pdfs('pyq_pdfs/dbms')
-                
-                if result == "FOLDER_MISSING":
-                    st.error("❌ Folder 'pyq_pdfs' not found!")
-                elif result == "NO_FILES":
-                    st.error("❌ No PDFs found in 'pyq_pdfs' folder.")
-                else:
-                    st.success(f"✅ Processed! Found {len(result)} unique questions.")
-                    # [NEW] Set the flag to True so the dashboard appears
-                    st.session_state.show_pyq_results = True 
+        col1, col2 = st.columns([0.7, 0.3])
+        
+        with col1:
+            if st.button("🧠 Analyze PYQs", use_container_width=True):
+                with st.spinner("Loading analysis..."):
+                    # force_reprocess defaults to False, so it loads JSON if available
+                    result = process_pyq_pdfs() 
+                    
+                    if isinstance(result, str): # Handle error strings
+                        if result == "FOLDER_MISSING":
+                            st.error("❌ Folder 'pyq_pdfs' not found!")
+                        elif result == "NO_FILES":
+                            st.error("❌ No PDFs found in 'pyq_pdfs' folder.")
+                    else:
+                        st.success(f"✅ Loaded {sum(len(v) for v in result.values())} questions.")
+                        st.session_state.show_pyq_results = True 
+                        st.rerun()
+
+        with col2:
+            # Small refresh button to Force Update
+            if st.button("🔄", help="Force re-scan of PDFs"):
+                with st.spinner("Re-scanning PDFs (this takes time)..."):
+                    result = process_pyq_pdfs(force_reprocess=True)
+                    st.success("Analysis updated!")
+                    st.session_state.show_pyq_results = True
                     st.rerun()
         
         st.markdown("----")

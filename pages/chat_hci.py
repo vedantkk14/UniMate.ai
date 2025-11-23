@@ -626,7 +626,7 @@ def clean_pyq_text(text):
     text = re.sub(r'\n\s*\n', '\n', text)
     return text.strip()
 
-def process_pyq_pdfs(folder_path=None):
+def process_pyq_pdfs(folder_path=None, force_reprocess=False):
     # --- PATH SETUP ---
     if folder_path is None:
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -634,15 +634,25 @@ def process_pyq_pdfs(folder_path=None):
         
     output_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "PYQs/pyqs_master_hci.json")
 
+    # --- NEW LOGIC: CHECK IF JSON EXISTS ---
+    if os.path.exists(output_file) and not force_reprocess:
+        # st.info(f"📂 Loading cached PYQ analysis from {output_file}...") # Optional debug print
+        try:
+            with open(output_file, 'r') as f:
+                return json.load(f)
+        except Exception as e:
+            st.error(f"Error loading cached JSON: {e}. Reprocessing...")
+            # If loading fails, we allow the code to continue to regeneration
+
+    # --- BELOW IS THE EXISTING PROCESSING LOGIC ---
     if not os.path.exists(folder_path):
         return "FOLDER_MISSING"
 
-    # Get list of all PDF files
     pdf_files = [f for f in os.listdir(folder_path) if f.endswith('.pdf')]
     if not pdf_files:
         return "NO_FILES"
 
-    # Initialize Data Structure
+    # Initialize Data Structure for Units
     unit_database = {
         "Unit 3": [],
         "Unit 4": [],
@@ -650,62 +660,50 @@ def process_pyq_pdfs(folder_path=None):
         "Unit 6": []
     }
 
-    # Iterate through ALL found PDF files
     for pdf_file in pdf_files:
-        try:
-            # Load the specific PDF
-            loader = PyPDFLoader(os.path.join(folder_path, pdf_file))
-            pages = loader.load()
-            full_text_raw = " ".join([p.page_content for p in pages])
-            
-            # --- CRITICAL STEP: Clean the text before sending to LLM ---
-            # This ensures noise doesn't break the extraction for subsequent files
-            cleaned_text = clean_pyq_text(full_text_raw)
-            
-            # Extract questions from this specific file
-            # We use the cleaned text now, which makes the LLM much more accurate
-            raw_lines = extract_questions_with_numbers(cleaned_text[:4000]) 
-            
-            for line in raw_lines:
-                try:
-                    parts = line.split("::", 1)
-                    if len(parts) < 2: continue
+        loader = PyPDFLoader(os.path.join(folder_path, pdf_file))
+        pages = loader.load()
+        full_text = " ".join([p.page_content for p in pages])
+        
+        # Get raw lines "1 :: What is SQL"
+        raw_lines = extract_questions_with_numbers(full_text[:3500]) 
+        
+        for line in raw_lines:
+            try:
+                # Split "1 :: Text" into "1" and "Text"
+                q_num_str, q_text = line.split("::", 1)
+                q_text = q_text.strip()
+                
+                # Determine Unit
+                unit_name = get_unit_from_question_number(q_num_str)
+                
+                # Only process if it belongs to Units 3-6
+                if unit_name and unit_name in unit_database:
                     
-                    q_num_str, q_text = parts
-                    q_text = q_text.strip()
+                    # --- FUZZY MATCHING INSIDE THE SPECIFIC UNIT ---
+                    found = False
+                    for existing in unit_database[unit_name]:
+                        similarity = fuzz.token_sort_ratio(q_text.lower(), existing['question'].lower())
+                        if similarity > 85:
+                            existing['count'] += 1
+                            # Keep the longer description
+                            if len(q_text) > len(existing['question']):
+                                existing['question'] = q_text
+                            found = True
+                            break
                     
-                    unit_name = get_unit_from_question_number(q_num_str)
-                    
-                    if unit_name and unit_name in unit_database:
-                        # Check for duplicates across the accumulating database
-                        found = False
-                        for existing in unit_database[unit_name]:
-                            similarity = fuzz.token_sort_ratio(q_text.lower(), existing['question'].lower())
-                            if similarity > 85:
-                                existing['count'] += 1
-                                # Keep the description that is longer (usually more complete)
-                                if len(q_text) > len(existing['question']):
-                                    existing['question'] = q_text
-                                found = True
-                                break
+                    if not found:
+                        unit_database[unit_name].append({'question': q_text, 'count': 1})
                         
-                        if not found:
-                            unit_database[unit_name].append({'question': q_text, 'count': 1})
-                            
-                except ValueError:
-                    continue 
+            except ValueError:
+                continue # Skip lines that don't match format
 
-        except Exception as e:
-            # If one file fails, print error to console but CONTINUE to next file
-            print(f"⚠️ Error processing file {pdf_file}: {str(e)}")
-            continue
-
-    # Sort results by frequency
+    # Sort questions inside each unit by count
     for unit in unit_database:
         unit_database[unit].sort(key=lambda x: x['count'], reverse=True)
 
-    # Save Master JSON
-    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+    # Save
+    os.makedirs(os.path.dirname(output_file), exist_ok=True) # Ensure directory exists
     with open(output_file, 'w') as f:
         json.dump(unit_database, f)
         
