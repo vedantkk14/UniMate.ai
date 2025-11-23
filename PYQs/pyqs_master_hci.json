@@ -1,0 +1,31 @@
+{
+    "Unit 3": [{"question": "Explain what is mean by Human err in detail.", "count": 1}, 
+                {"question": "Elaborate Graphical User Interface in detail.", "count": 1}, 
+                {"question": "Explain web user interface in detail.", "count": 1}, 
+                {"question": "Explain usability Engineering with suitable example.", "count": 1}, 
+                {"question": "Write down about interactive design and prototyping using suitable example.", "count": 1}, 
+                {"question": "Write short note on Popularity of Graphics.", "count": 1}, 
+                {"question": "Write short note on Concept of Direct Manipulation.", "count": 1}], 
+                
+    "Unit 4": [{"question": "Explain analytic methods and model-based analysis.", "count": 1}, 
+                {"question": "Elaborate universal design principles in detail.", "count": 1}, 
+                {"question": "Explain cognitive walkthrough in detail.", "count": 1}, 
+                {"question": "Elaborate GOMS model.", "count": 1}, 
+                {"question": "Elaborate evaluation Framework using following point: Paradigms and Techniques.", "count": 1}, 
+                {"question": "Elaborate evaluation Framework using following point: DECIDE: A Framework to Guide Evaluation.", "count": 1}, 
+                {"question": "Discuss the concept of designing of diversity.", "count": 1}], 
+                
+    "Unit 5": [{"question": "What is mean by ubiquitous computing? Which are the applications of it? Explain with suitable example.", "count": 1}, 
+                {"question": "Compare data integrity and data immunity.", "count": 1}, 
+                {"question": "Which are the social aspects of search? Explain.", "count": 1}, 
+                {"question": "Discuss about handling missing data using suitable example.", "count": 1}, 
+                {"question": "What is the significance of machine learning in HCI? Describe.", "count": 1}, 
+                {"question": "Explain sensor-based and context-aware interaction.", "count": 1}], 
+                
+    "Unit 6": [{"question": "Explain Mobile Navigation, Content and Control Idioms using appropriate Example.", "count": 1}, 
+                {"question": "Discuss Drawers used in HCI system. Explain item-level drawers.", "count": 1}, 
+                {"question": "Describe the \u201cInter-app Integration\u201d.", "count": 1}, 
+                {"question": "What is use of \u201cmulti-touch gestures\u201d? Explain various multi-touch gestures used in mobile device.", "count": 1}, 
+                {"question": "Describe Tap-to-Reveal and Direct Manipulation.", "count": 1}, 
+                {"question": "Explain \u201cWelcome and Help Screens\u201d.", "count": 1}]
+}

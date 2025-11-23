@@ -1,0 +1,21 @@
+{
+    "Unit 3": [{"question": "Differentiate between circuit switching, Packet switching, message Switching.", "count": 1}, 
+                {"question": "Write short note on network address translation.", "count": 1}, 
+                {"question": "Differentiate between Static Routing and Dynamic Routing.", "count": 1}, 
+                {"question": "State the difference between circuit switching and packet switching.", "count": 1}], 
+                
+    "Unit 4": [{"question": "Explain the concept of class full and class less addressing.", "count": 1}, 
+                {"question": "Compare routing protocols RIP, OSPS, BGP.", "count": 1}, 
+                {"question": "Draw TCP header and explain TCP connection 3-way handshake.", "count": 1}, 
+                {"question": "Explain Stream Control Transmission Protocol (SCTP).", "count": 1}], 
+                
+    "Unit 5": [{"question": "Explain the concept of connection less and connection oriented protocol with example.", "count": 1}, 
+                {"question": "Write short note on sockets and sockets programming.", "count": 1}, 
+                {"question": "Discuss the Simple Network Management Protocol (SNMP) and its role in network management and monitoring.", "count": 1}, 
+                {"question": "Describe DHCP and its need.", "count": 1}], 
+                
+    "Unit 6": [{"question": "Explain different elements of transport protocol.", "count": 1}, 
+                {"question": "Explain RTP protocol in detail.", "count": 1}, 
+                {"question": "Write a short note on CSMA/CD.", "count": 1}, 
+                {"question": "Discuss Binary Exponential Back -off algorithm.", "count": 1}]
+}

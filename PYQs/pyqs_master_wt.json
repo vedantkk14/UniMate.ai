@@ -1,0 +1,21 @@
+{
+    "Unit 3": [{"question": "Explain the following", "count": 1}, 
+                {"question": "What is servlet? Explain the session management technique in servlet.", "count": 1}, 
+                {"question": "Write a simple servlet program to display hello World.", "count": 1}, 
+                {"question": "Explain DTD : Schema, elements, attributes.", "count": 1}], 
+                
+    "Unit 4": [{"question": "Write advantages of JSP over servlet and explain life cycle of JSP.", "count": 1}, 
+                {"question": "Explain the strut architecture with neat diagram and also explain the benefits of struts.", "count": 1}, 
+                {"question": "Write a JSP program to demonstrate use of JSP Action tags.", "count": 1}, 
+                {"question": "Write the benefits of web services and explain SOAP, REST and UDDI.", "count": 1}], 
+            
+    "Unit 5": [{"question": "Explain the following with respects to PHP i) Session tracking ii) Function iii) Arrays.", "count": 1}, 
+                {"question": "How does connectivity with MySQL work in PHP. Explain with example.", "count": 1}, 
+                {"question": "Write a program to explain control statements in PHP.", "count": 1}, 
+                {"question": "Explain the concepts of classes and pattern matching in Ruby.", "count": 1}], 
+                
+    "Unit 6": [{"question": "Explain scholar types and their operations in Ruby.", "count": 1}, 
+                {"question": "What is module? Differentiate classes and module.", "count": 1}, 
+                {"question": "Explain Rails with request and response in Rails application.", "count": 1}, 
+                {"question": "What is EJB? Explain types of EJB.", "count": 1}]
+}

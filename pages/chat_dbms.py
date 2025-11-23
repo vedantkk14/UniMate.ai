@@ -363,7 +363,7 @@ def process_pyq_pdfs(folder_path=None):
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         folder_path = os.path.join(base_dir, 'pyq_pdfs', 'dbms')
         
-    output_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "pyqs_master.json")
+    output_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "PYQs/pyqs_master_dbms.json")
 
     if not os.path.exists(folder_path):
         return "FOLDER_MISSING"
@@ -547,7 +547,7 @@ def main():
 # --- PYQ DASHBOARD SECTION ---
     current_script_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(current_script_dir)
-    json_path = os.path.join(project_root, "pyqs_master.json")
+    json_path = os.path.join(project_root, "PYQs/pyqs_master_dbms.json")
 
     # COMBINED CHECK: File must exist AND the flag must be True
     if st.session_state.show_pyq_results and os.path.exists(json_path):

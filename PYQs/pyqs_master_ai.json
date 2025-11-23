@@ -1,0 +1,25 @@
+{
+
+"Unit 3": [{"question": "What are the issues that need to be addressed for solving CSP efficiently? Explain the Solutions to them.", "count": 1}, 
+            {"question": "Explain heuristic function that can be used in cutting off search in detail.", "count": 1}, 
+            {"question": "Explain Alpha-Beta Tree search and cutoff procedure in detail with an example.", "count": 1}, 
+            {"question": "Define constraints in CSPs. Explain any two types of constraints in detail.", "count": 1}, 
+            {"question": "What are the limitations of Game search algorithms?", "count": 1}], 
+
+"Unit 4": [{"question": "What are the various approaches to knowledge representation? Explain in detail.", "count": 1}, 
+            {"question": "Detail the algorithm for deciding entailment in propositional logic.", "count": 1}, 
+            {"question": "Differentiate propositional logic with First order logic. List the inference rules along with suitable examples for first order logic.", "count": 1}, 
+            {"question": "Explain knowledge representation structures and compare them.", "count": 1}], 
+            
+"Unit 5": [{"question": "Explain unification algorithm with a suitable example.", "count": 1}, 
+            {"question": "What is knowledge engineering? Explain ontology of situation calculus.", "count": 1}, 
+            {"question": "Explain the forward chaining process and efficient forward chaining with example. State its usage.", "count": 1}, 
+            {"question": "What are the reasoning patterns in propositional logic? Explain them in detail.", "count": 1}, 
+            {"question": "Write a note on categories and objects.", "count": 1}], 
+            
+"Unit 6": [{"question": "Explain time, schedules and resources in temporal domain with an example.", "count": 1}, 
+            {"question": "Discuss AI and its ethical concerns. Explain limitations of AI.", "count": 1}, 
+            {"question": "Analyze various planning approaches in detail.", "count": 1}, 
+            {"question": "Explain AI architecture with a suitable diagram.", "count": 1}]
+            
+}

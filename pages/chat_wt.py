@@ -31,6 +31,9 @@ from reportlab.lib.colors import HexColor
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, KeepTogether
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 
+import json
+from thefuzz import fuzz # For matching similar questions
+
 def chat_model():
     llm = HuggingFaceEndpoint(
         repo_id='openai/gpt-oss-20b',
@@ -534,6 +537,180 @@ def parse_quiz_content(text):
             
     return questions
 
+# get pyqs function
+def get_unit_from_question_number(q_num_str):
+    """
+    Maps question number to Unit based on user logic:
+    Q1, Q2 -> Unit 3
+    Q3, Q4 -> Unit 4
+    Q5, Q6 -> Unit 5
+    Q7, Q8 -> Unit 6
+    """
+    # Extract the first digit found in the string (e.g., "Q1a" -> 1)
+    match = re.search(r'\d+', str(q_num_str))
+    if not match:
+        return None
+    
+    q_num = int(match.group())
+    
+    if q_num in [1, 2]: return "Unit 3"
+    if q_num in [3, 4]: return "Unit 4"
+    if q_num in [5, 6]: return "Unit 5"
+    if q_num in [7, 8]: return "Unit 6"
+    
+    return "Other"
+
+def extract_questions_with_numbers(text):
+    """
+    Asks LLM to extract questions AND preserve their numbers for unit mapping.
+    """
+    llm = chat_model()
+    
+    # Modified prompt to keep numbers
+    prompt = f"""
+    You are an exam parser. extract questions from the following text.
+    
+    Raw Text: "{text}"
+    
+    Rules:
+    1. Extract the Main Question Number (Q1, Q2, Q3...) and the Question Text.
+    2. Format strictly as: "NUMBER :: QUESTION_TEXT"
+    3. Ignore marks like "(10 marks)".
+    5. Ignore marks printed in front of every question " [9]".
+    6. If a question has sub-parts (a, b), treat them as individual questions and then remove the (a, b, c) question name.
+       Example: "1a :: Define AI" or "1 :: Define WT".
+    
+    Output Example:
+    1 :: What is normalization?
+    2 :: Explain 3NF.
+    3 :: What is a Transaction?
+    """
+    
+    try:
+        response = llm.invoke(prompt)
+        lines = [line.strip() for line in response.content.split('\n') if "::" in line]
+        return lines
+    except Exception as e:
+        print(f"Error extracting: {e}")
+        return []
+
+def clean_pyq_text(text):
+    """
+    Cleans raw PDF text by removing watermarks, IPs, timestamps, 
+    and exam metadata to isolate the question text.
+    """
+    # 1. Remove IP addresses
+    text = re.sub(r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b', '', text)
+    # 2. Remove timestamps (e.g., 10:40:54)
+    text = re.sub(r'\d{1,2}:\d{2}:\d{2}', '', text)
+    # 3. Remove paper codes/IDs
+    text = re.sub(r'static-\d+', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'CEGP\w+', '', text)
+    text = re.sub(r'\[\d+\]-\d+', '', text)
+    text = re.sub(r'P-\d+', '', text)
+    # 4. Remove marks [9]
+    text = re.sub(r'\[\d+\]', '', text)
+    
+    # 5. Remove standard exam junk phrases
+    junk_phrases = [
+        "Total No. of Questions", "Total No. of Pages", "SEAT No.:", 
+        "Instructions to the candidates", "Assume Suitable data", 
+        "Neat diagrams must be drawn", "Attempt four questions",
+        "Max. Marks", "P.T.O.", "Semester - I", "Artificial Intelligence",
+        "Time:", "Pattern"
+    ]
+    for phrase in junk_phrases:
+        text = text.replace(phrase, '')
+        
+    # 6. Fix line breaks
+    text = re.sub(r'\n\s*\n', '\n', text)
+    return text.strip()
+
+def process_pyq_pdfs(folder_path=None):
+    # --- PATH SETUP ---
+    if folder_path is None:
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        folder_path = os.path.join(base_dir, 'pyq_pdfs', 'wt')
+        
+    output_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "PYQs/pyqs_master_wt.json")
+
+    if not os.path.exists(folder_path):
+        return "FOLDER_MISSING"
+
+    # Get list of all PDF files
+    pdf_files = [f for f in os.listdir(folder_path) if f.endswith('.pdf')]
+    if not pdf_files:
+        return "NO_FILES"
+
+    # Initialize Data Structure
+    unit_database = {
+        "Unit 3": [],
+        "Unit 4": [],
+        "Unit 5": [],
+        "Unit 6": []
+    }
+
+    # Iterate through ALL found PDF files
+    for pdf_file in pdf_files:
+        try:
+            # Load the specific PDF
+            loader = PyPDFLoader(os.path.join(folder_path, pdf_file))
+            pages = loader.load()
+            full_text_raw = " ".join([p.page_content for p in pages])
+            
+            # --- CRITICAL STEP: Clean the text before sending to LLM ---
+            # This ensures noise doesn't break the extraction for subsequent files
+            cleaned_text = clean_pyq_text(full_text_raw)
+            
+            # Extract questions from this specific file
+            # We use the cleaned text now, which makes the LLM much more accurate
+            raw_lines = extract_questions_with_numbers(cleaned_text[:4000]) 
+            
+            for line in raw_lines:
+                try:
+                    parts = line.split("::", 1)
+                    if len(parts) < 2: continue
+                    
+                    q_num_str, q_text = parts
+                    q_text = q_text.strip()
+                    
+                    unit_name = get_unit_from_question_number(q_num_str)
+                    
+                    if unit_name and unit_name in unit_database:
+                        # Check for duplicates across the accumulating database
+                        found = False
+                        for existing in unit_database[unit_name]:
+                            similarity = fuzz.token_sort_ratio(q_text.lower(), existing['question'].lower())
+                            if similarity > 85:
+                                existing['count'] += 1
+                                # Keep the description that is longer (usually more complete)
+                                if len(q_text) > len(existing['question']):
+                                    existing['question'] = q_text
+                                found = True
+                                break
+                        
+                        if not found:
+                            unit_database[unit_name].append({'question': q_text, 'count': 1})
+                            
+                except ValueError:
+                    continue 
+
+        except Exception as e:
+            # If one file fails, print error to console but CONTINUE to next file
+            print(f"⚠️ Error processing file {pdf_file}: {str(e)}")
+            continue
+
+    # Sort results by frequency
+    for unit in unit_database:
+        unit_database[unit].sort(key=lambda x: x['count'], reverse=True)
+
+    # Save Master JSON
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+    with open(output_file, 'w') as f:
+        json.dump(unit_database, f)
+        
+    return unit_database
+
 def main():
     load_dotenv()
     st.set_page_config(
@@ -558,6 +735,24 @@ def main():
                         st.success("✅ Quiz generated! Scroll down to take it.")
                     else:
                         st.error("❌ Failed to generate valid questions. Try again.")
+        
+        st.markdown("----")
+
+        st.markdown("### 📊 Exam Analysis")
+        if st.button("🧠 Analyze PYQ Papers", use_container_width=True):
+            with st.spinner("Reading PDFs, extracting questions, and checking duplicates..."):
+                # Run the processor
+                result = process_pyq_pdfs('pyq_pdfs/wt')
+                
+                if result == "FOLDER_MISSING":
+                    st.error("❌ Folder 'pyq_pdfs' not found!")
+                elif result == "NO_FILES":
+                    st.error("❌ No PDFs found in 'pyq_pdfs' folder.")
+                else:
+                    st.success(f"✅ Processed! Found {len(result)} unique questions.")
+                    # [NEW] Set the flag to True so the dashboard appears
+                    st.session_state.show_pyq_results = True 
+                    st.rerun()
         
         st.markdown("----")
 
@@ -652,6 +847,10 @@ def main():
     # for quiz questions
     if "quiz_data" not in st.session_state:
         st.session_state.quiz_data = None
+
+    # for pyq visibility
+    if "show_pyq_results" not in st.session_state:
+        st.session_state.show_pyq_results = False
     
     if "wt_vectordb" not in st.session_state:
         st.info("🚀 Initializing WT knowledge base...")
@@ -671,6 +870,56 @@ def main():
             st.error(f"❌ Critical error during initialization: {str(e)}")
             st.info("Try enabling Test Mode in sidebar to process only 10 pages")
             st.stop()
+
+# --- PYQ DASHBOARD SECTION ---
+    current_script_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(current_script_dir)
+    json_path = os.path.join(project_root, "PYQs/pyqs_master_wt.json")
+
+    # COMBINED CHECK: File must exist AND the flag must be True
+    if st.session_state.show_pyq_results and os.path.exists(json_path):
+        
+        # 1. Show the Close Button
+        if st.button("❌ Close Analysis View", key="close_pyq"):
+            st.session_state.show_pyq_results = False
+            st.rerun()
+            
+        # 2. Show the Content (Inside the same IF block!)
+        with st.expander("📚 Frequent Questions (Unit-wise Analysis)", expanded=True):
+            try:
+                with open(json_path, 'r') as f:
+                    pyq_data = json.load(f)
+                
+                if pyq_data:
+                    # Create Tabs for each Unit
+                    tab1, tab2, tab3, tab4 = st.tabs(["Unit 3", "Unit 4", "Unit 5", "Unit 6"])
+                    
+                    # Helper to render a list
+                    def render_unit_questions(questions):
+                        if not questions:
+                            st.info("No questions found for this unit.")
+                            return
+                        
+                        for item in questions:
+                            c1, c2 = st.columns([0.15, 0.85])
+                            with c1:
+                                if item['count'] > 1:
+                                    st.markdown(f":fire: **{item['count']}x**")
+                                else:
+                                    st.markdown(f"🔹 1x")
+                            with c2:
+                                st.write(item['question'])
+                            st.markdown("---")
+
+                    with tab1: render_unit_questions(pyq_data.get("Unit 3", []))
+                    with tab2: render_unit_questions(pyq_data.get("Unit 4", []))
+                    with tab3: render_unit_questions(pyq_data.get("Unit 5", []))
+                    with tab4: render_unit_questions(pyq_data.get("Unit 6", []))
+                        
+                else:
+                    st.warning("JSON is empty. Try running analysis again.")
+            except Exception as e:
+                st.error(f"Error loading PYQ data: {e}")
 
     # Get user input
     user_input = st.chat_input("Ask anything about Web Technology...")
