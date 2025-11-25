@@ -460,7 +460,8 @@ def main():
                 with st.spinner("👩‍🏫 Analyzing conversation and crafting questions..."):
                     quiz = generate_quiz_from_history(st.session_state.dbms_chat_history[-10:])
                     if quiz:
-                        st.session_state.quiz_data = quiz
+                        # UPDATED: Use dbms_ prefix
+                        st.session_state.dbms_quiz_data = quiz
                         st.success("✅ Quiz generated! Scroll down to take it.")
                     else:
                         st.error("❌ Failed to generate valid questions. Try again.")
@@ -484,7 +485,8 @@ def main():
                             st.error("❌ No PDFs found in 'pyq_pdfs' folder.")
                     else:
                         st.success(f"✅ Loaded {sum(len(v) for v in result.values())} questions.")
-                        st.session_state.show_pyq_results = True 
+                        # UPDATED: Use dbms_ prefix
+                        st.session_state.dbms_show_pyq_results = True 
                         st.rerun()
 
         with col2:
@@ -493,7 +495,8 @@ def main():
                 with st.spinner("Re-scanning PDFs (this takes time)..."):
                     result = process_pyq_pdfs(force_reprocess=True)
                     st.success("Analysis updated!")
-                    st.session_state.show_pyq_results = True
+                    # UPDATED: Use dbms_ prefix
+                    st.session_state.dbms_show_pyq_results = True
                     st.rerun()
         
         st.markdown("----")
@@ -560,24 +563,26 @@ def main():
         with st.spinner("Loading DBMS knowledge base..."):
             st.session_state.dbms_vectordb = load_and_create_vectordb()
         st.success("Knowledge base loaded!")
-    # for quiz questions
-    if "quiz_data" not in st.session_state:
-        st.session_state.quiz_data = None
-    # for pyq visibility
-    if "show_pyq_results" not in st.session_state:
-        st.session_state.show_pyq_results = False
+    
+    # for quiz questions (UPDATED with dbms_ prefix)
+    if "dbms_quiz_data" not in st.session_state:
+        st.session_state.dbms_quiz_data = None
+    # for pyq visibility (UPDATED with dbms_ prefix)
+    if "dbms_show_pyq_results" not in st.session_state:
+        st.session_state.dbms_show_pyq_results = False
     
 # --- PYQ DASHBOARD SECTION ---
     current_script_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(current_script_dir)
     json_path = os.path.join(project_root, "PYQs/pyqs_master_dbms.json")
 
-    # COMBINED CHECK: File must exist AND the flag must be True
-    if st.session_state.show_pyq_results and os.path.exists(json_path):
+    # COMBINED CHECK: File must exist AND the flag must be True (UPDATED with dbms_ prefix)
+    if st.session_state.dbms_show_pyq_results and os.path.exists(json_path):
         
         # 1. Show the Close Button
         if st.button("❌ Close Analysis View", key="close_pyq"):
-            st.session_state.show_pyq_results = False
+            # UPDATED: Use dbms_ prefix
+            st.session_state.dbms_show_pyq_results = False
             st.rerun()
             
         # 2. Show the Content (Inside the same IF block!)
@@ -732,7 +737,8 @@ DBMS Context:
                 </div>
                 """, unsafe_allow_html=True)
 
-    if st.session_state.quiz_data:
+    # (UPDATED with dbms_ prefix)
+    if st.session_state.dbms_quiz_data:
         st.markdown("---")
         with st.expander("📝 Take the Quiz", expanded=True):
             st.subheader("Test Your Understanding")
@@ -741,7 +747,8 @@ DBMS Context:
                 score = 0
                 user_answers = {}
                 
-                for i, q in enumerate(st.session_state.quiz_data):
+                # (UPDATED with dbms_ prefix)
+                for i, q in enumerate(st.session_state.dbms_quiz_data):
                     st.markdown(f"**{i+1}. {q['question']}**")
                     # Radio button for options
                     user_choice = st.radio(
@@ -757,7 +764,8 @@ DBMS Context:
                 
                 if submitted:
                     correct_count = 0
-                    for i, q in enumerate(st.session_state.quiz_data):
+                    # (UPDATED with dbms_ prefix)
+                    for i, q in enumerate(st.session_state.dbms_quiz_data):
                         user_choice = user_answers.get(i)
                         # Extract the letter (A, B, C, D) from the user's choice string
                         user_letter = user_choice.split(')')[0] if user_choice else None
@@ -768,8 +776,9 @@ DBMS Context:
                         else:
                             st.error(f"Q{i+1}: Incorrect. The correct answer was {q['correct']}.")
                     
-                    percentage = (correct_count / len(st.session_state.quiz_data)) * 100
-                    st.metric(label="Final Score", value=f"{percentage}%", delta=f"{correct_count}/{len(st.session_state.quiz_data)} Correct")
+                    # (UPDATED with dbms_ prefix)
+                    percentage = (correct_count / len(st.session_state.dbms_quiz_data)) * 100
+                    st.metric(label="Final Score", value=f"{percentage}%", delta=f"{correct_count}/{len(st.session_state.dbms_quiz_data)} Correct")
                     
                     if percentage == 100:
                         st.balloons()

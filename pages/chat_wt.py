@@ -729,7 +729,7 @@ def main():
                 with st.spinner("👩‍🏫 Analyzing conversation and crafting questions..."):
                     quiz = generate_quiz_from_history(st.session_state.wt_chat_history[-10:])
                     if quiz:
-                        st.session_state.quiz_data = quiz
+                        st.session_state.wt_quiz_data = quiz
                         st.success("✅ Quiz generated! Scroll down to take it.")
                     else:
                         st.error("❌ Failed to generate valid questions. Try again.")
@@ -749,7 +749,7 @@ def main():
                 else:
                     st.success(f"✅ Processed! Found {len(result)} unique questions.")
                     # [NEW] Set the flag to True so the dashboard appears
-                    st.session_state.show_pyq_results = True 
+                    st.session_state.wt_show_pyq_results = True 
                     st.rerun()
         
         st.markdown("----")
@@ -843,12 +843,12 @@ def main():
         st.session_state.wt_chat_history = []
 
     # for quiz questions
-    if "quiz_data" not in st.session_state:
-        st.session_state.quiz_data = None
+    if "wt_quiz_data" not in st.session_state:
+        st.session_state.wt_quiz_data = None
 
     # for pyq visibility
-    if "show_pyq_results" not in st.session_state:
-        st.session_state.show_pyq_results = False
+    if "wt_show_pyq_results" not in st.session_state:
+        st.session_state.wt_show_pyq_results = False
     
     if "wt_vectordb" not in st.session_state:
         st.info("🚀 Initializing WT knowledge base...")
@@ -875,11 +875,11 @@ def main():
     json_path = os.path.join(project_root, "PYQs/pyqs_master_wt.json")
 
     # COMBINED CHECK: File must exist AND the flag must be True
-    if st.session_state.show_pyq_results and os.path.exists(json_path):
+    if st.session_state.wt_show_pyq_results and os.path.exists(json_path):
         
         # 1. Show the Close Button
         if st.button("❌ Close Analysis View", key="close_pyq"):
-            st.session_state.show_pyq_results = False
+            st.session_state.wt_show_pyq_results = False
             st.rerun()
             
         # 2. Show the Content (Inside the same IF block!)
@@ -1037,7 +1037,7 @@ AI Context:
                 </div>
                 """, unsafe_allow_html=True)
 
-    if st.session_state.quiz_data:
+    if st.session_state.wt_quiz_data:
         st.markdown("---")
         with st.expander("📝 Take the Quiz", expanded=True):
             st.subheader("Test Your Understanding")
@@ -1046,7 +1046,7 @@ AI Context:
                 score = 0
                 user_answers = {}
                 
-                for i, q in enumerate(st.session_state.quiz_data):
+                for i, q in enumerate(st.session_state.wt_quiz_data):
                     st.markdown(f"**{i+1}. {q['question']}**")
                     # Radio button for options
                     user_choice = st.radio(
@@ -1062,7 +1062,7 @@ AI Context:
                 
                 if submitted:
                     correct_count = 0
-                    for i, q in enumerate(st.session_state.quiz_data):
+                    for i, q in enumerate(st.session_state.wt_quiz_data):
                         user_choice = user_answers.get(i)
                         # Extract the letter (A, B, C, D) from the user's choice string
                         user_letter = user_choice.split(')')[0] if user_choice else None
@@ -1073,8 +1073,8 @@ AI Context:
                         else:
                             st.error(f"Q{i+1}: Incorrect. The correct answer was {q['correct']}.")
                     
-                    percentage = (correct_count / len(st.session_state.quiz_data)) * 100
-                    st.metric(label="Final Score", value=f"{percentage}%", delta=f"{correct_count}/{len(st.session_state.quiz_data)} Correct")
+                    percentage = (correct_count / len(st.session_state.wt_quiz_data)) * 100
+                    st.metric(label="Final Score", value=f"{percentage}%", delta=f"{correct_count}/{len(st.session_state.wt_quiz_data)} Correct")
                     
                     if percentage == 100:
                         st.balloons()
