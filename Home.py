@@ -7,7 +7,7 @@ from langchain_core.messages import HumanMessage, AIMessage
 from langchain_community.utilities import GoogleSearchAPIWrapper
 from dotenv import load_dotenv
 import streamlit as st
-from PyPDF2 import PdfReader
+from pypdf import PdfReader
 from datetime import datetime
 import re
 
