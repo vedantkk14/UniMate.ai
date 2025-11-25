@@ -12,9 +12,9 @@ from datetime import datetime
 import re
 
 # NEW IMPORTS FOR OCR
-import pytesseract
-from pdf2image import convert_from_bytes
-from PIL import Image
+# import pytesseract
+# from pdf2image import convert_from_bytes
+# from PIL import Image
 
 # libraries for generating pdfs
 from reportlab.lib.pagesizes import letter
@@ -442,19 +442,19 @@ def main():
                     
                     # 2. Check if extraction failed (indicative of image/scanned PDF)
                     # We check if raw_text is empty or contains very little valid data
-                    if len(raw_text.strip()) < 50:
-                        st.warning("⚠️ Scanned PDF detected. Converting images to text (OCR)... This may take a moment.")
+                    # if len(raw_text.strip()) < 50:
+                    #     st.warning("⚠️ Scanned PDF detected. Converting images to text (OCR)... This may take a moment.")
                         
-                        # Reset file pointer to beginning for pdf2image
-                        pdf.seek(0)
+                    #     # Reset file pointer to beginning for pdf2image
+                    #     pdf.seek(0)
                         
-                        # Convert PDF bytes to images
-                        images = convert_from_bytes(pdf.read())
+                    #     # Convert PDF bytes to images
+                    #     images = convert_from_bytes(pdf.read())
                         
-                        # Perform OCR on each page
-                        for image in images:
-                            ocr_text = pytesseract.image_to_string(image)
-                            raw_text += ocr_text + " "
+                    #     # Perform OCR on each page
+                    #     for image in images:
+                    #         ocr_text = pytesseract.image_to_string(image)
+                    #         raw_text += ocr_text + " "
                             
                 except Exception as e:
                     st.error(f"Error during PDF processing: {str(e)}")
