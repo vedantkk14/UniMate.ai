@@ -1,5 +1,3 @@
-# AI page
-
 import os
 import re
 import streamlit as st
@@ -25,8 +23,6 @@ from datetime import datetime
 import io
 
 import json
-from thefuzz import fuzz # For matching similar questions
-
 
 def chat_model():
     llm = HuggingFaceEndpoint(
@@ -43,7 +39,6 @@ def get_embeddings():
 
 def clean_text(text):
     """Clean text while preserving the actual meaning"""
-
     pass
     
 def web_search_fallback(query: str) -> str:
@@ -328,177 +323,21 @@ def parse_quiz_content(text):
             
     return questions
 
-# get pyqs function
-def get_unit_from_question_number(q_num_str):
-    """
-    Maps question number to Unit based on user logic:
-    Q1, Q2 -> Unit 3
-    Q3, Q4 -> Unit 4
-    Q5, Q6 -> Unit 5
-    Q7, Q8 -> Unit 6
-    """
-    # Extract the first digit found in the string (e.g., "Q1a" -> 1)
-    match = re.search(r'\d+', str(q_num_str))
-    if not match:
-        return None
-    
-    q_num = int(match.group())
-    
-    if q_num in [1, 2]: return "Unit 3"
-    if q_num in [3, 4]: return "Unit 4"
-    if q_num in [5, 6]: return "Unit 5"
-    if q_num in [7, 8]: return "Unit 6"
-    
-    return "Other"
-
-def extract_questions_with_numbers(text):
-    """
-    Asks LLM to extract questions AND preserve their numbers for unit mapping.
-    """
-    llm = chat_model()
-    
-    # Modified prompt to keep numbers
-    prompt = f"""
-    You are an exam parser. extract questions from the following text.
-    
-    Raw Text: "{text}"
-    
-    Rules:
-    1. Extract the Main Question Number (Q1, Q2, Q3...) and the Question Text.
-    2. Format strictly as: "NUMBER :: QUESTION_TEXT"
-    3. Ignore marks like "(10 marks)".
-    5. Ignore marks printed in front of every question " [9]".
-    6. If a question has sub-parts (a, b), treat them as individual questions and then remove the (a, b, c) question name.
-       Example: "1a :: Define AI" or "1 :: Define SQL".
-    
-    Output Example:
-    1 :: What is normalization?
-    2 :: Explain 3NF.
-    3 :: What is a Transaction?
-    """
-    
-    try:
-        response = llm.invoke(prompt)
-        lines = [line.strip() for line in response.content.split('\n') if "::" in line]
-        return lines
-    except Exception as e:
-        print(f"Error extracting: {e}")
-        return []
-
-def clean_pyq_text(text):
-    """
-    Cleans raw PDF text by removing watermarks, IPs, timestamps, 
-    and exam metadata to isolate the question text.
-    """
-    # 1. Remove IP addresses
-    text = re.sub(r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b', '', text)
-    # 2. Remove timestamps (e.g., 10:40:54)
-    text = re.sub(r'\d{1,2}:\d{2}:\d{2}', '', text)
-    # 3. Remove paper codes/IDs
-    text = re.sub(r'static-\d+', '', text, flags=re.IGNORECASE)
-    text = re.sub(r'CEGP\w+', '', text)
-    text = re.sub(r'\[\d+\]-\d+', '', text)
-    text = re.sub(r'P-\d+', '', text)
-    # 4. Remove marks [9]
-    text = re.sub(r'\[\d+\]', '', text)
-    
-    # 5. Remove standard exam junk phrases
-    junk_phrases = [
-        "Total No. of Questions", "Total No. of Pages", "SEAT No.:", 
-        "Instructions to the candidates", "Assume Suitable data", 
-        "Neat diagrams must be drawn", "Attempt four questions",
-        "Max. Marks", "P.T.O.", "Semester - I", "Artificial Intelligence",
-        "Time:", "Pattern"
-    ]
-    for phrase in junk_phrases:
-        text = text.replace(phrase, '')
-        
-    # 6. Fix line breaks
-    text = re.sub(r'\n\s*\n', '\n', text)
-    return text.strip()
-
 def process_pyq_pdfs(folder_path=None, force_reprocess=False):
     # --- PATH SETUP ---
-    if folder_path is None:
-        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        folder_path = os.path.join(base_dir, 'pyq_pdfs', 'ai')
-        
     output_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "PYQs/pyqs_master_ai.json")
 
-    # --- NEW LOGIC: CHECK IF JSON EXISTS ---
-    if os.path.exists(output_file) and not force_reprocess:
-        # st.info(f"📂 Loading cached PYQ analysis from {output_file}...") # Optional debug print
+    # Only load existing JSON; no processing/fuzzy matching logic included.
+    if os.path.exists(output_file):
         try:
             with open(output_file, 'r') as f:
                 return json.load(f)
         except Exception as e:
-            st.error(f"Error loading cached JSON: {e}. Reprocessing...")
-            # If loading fails, we allow the code to continue to regeneration
+            st.error(f"Error loading cached JSON: {e}")
+            return {}
+    
+    return {}
 
-    # --- BELOW IS THE EXISTING PROCESSING LOGIC ---
-    if not os.path.exists(folder_path):
-        return "FOLDER_MISSING"
-
-    pdf_files = [f for f in os.listdir(folder_path) if f.endswith('.pdf')]
-    if not pdf_files:
-        return "NO_FILES"
-
-    # Initialize Data Structure for Units
-    unit_database = {
-        "Unit 3": [],
-        "Unit 4": [],
-        "Unit 5": [],
-        "Unit 6": []
-    }
-
-    for pdf_file in pdf_files:
-        loader = PyPDFLoader(os.path.join(folder_path, pdf_file))
-        pages = loader.load()
-        full_text = " ".join([p.page_content for p in pages])
-        
-        # Get raw lines "1 :: What is SQL"
-        raw_lines = extract_questions_with_numbers(full_text[:3500]) 
-        
-        for line in raw_lines:
-            try:
-                # Split "1 :: Text" into "1" and "Text"
-                q_num_str, q_text = line.split("::", 1)
-                q_text = q_text.strip()
-                
-                # Determine Unit
-                unit_name = get_unit_from_question_number(q_num_str)
-                
-                # Only process if it belongs to Units 3-6
-                if unit_name and unit_name in unit_database:
-                    
-                    # --- FUZZY MATCHING INSIDE THE SPECIFIC UNIT ---
-                    found = False
-                    for existing in unit_database[unit_name]:
-                        similarity = fuzz.token_sort_ratio(q_text.lower(), existing['question'].lower())
-                        if similarity > 85:
-                            existing['count'] += 1
-                            # Keep the longer description
-                            if len(q_text) > len(existing['question']):
-                                existing['question'] = q_text
-                            found = True
-                            break
-                    
-                    if not found:
-                        unit_database[unit_name].append({'question': q_text, 'count': 1})
-                        
-            except ValueError:
-                continue # Skip lines that don't match format
-
-    # Sort questions inside each unit by count
-    for unit in unit_database:
-        unit_database[unit].sort(key=lambda x: x['count'], reverse=True)
-
-    # Save
-    os.makedirs(os.path.dirname(output_file), exist_ok=True) # Ensure directory exists
-    with open(output_file, 'w') as f:
-        json.dump(unit_database, f)
-        
-    return unit_database
 def main():
     load_dotenv()
     st.set_page_config(
@@ -528,7 +367,7 @@ def main():
 
         st.markdown("### 📊 Exam Analysis")
         if st.button("🧠 Analyze PYQ Papers", use_container_width=True):
-            with st.spinner("Reading PDFs, extracting questions, and checking duplicates..."):
+            with st.spinner("Loading previous years questions..."):
                 # Run the processor
                 result = process_pyq_pdfs('pyq_pdfs/ai')
                 
