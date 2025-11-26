@@ -26,7 +26,7 @@ import json
 
 def chat_model():
     llm = HuggingFaceEndpoint(
-        repo_id='Qwen/Qwen2.5-7B-Instruct', 
+        repo_id='deepseek-ai/DeepSeek-R1-Distill-Qwen-7B', 
         task='text-generation',
         temperature=0.8
     )
