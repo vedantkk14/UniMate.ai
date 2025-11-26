@@ -26,7 +26,7 @@ import json
 
 def chat_model():
     llm = HuggingFaceEndpoint(
-        repo_id='tiiuae/falcon-7b-instruct', 
+        repo_id='Qwen/Qwen2.5-7B-Instruct', 
         task='text-generation',
         temperature=0.8
     )

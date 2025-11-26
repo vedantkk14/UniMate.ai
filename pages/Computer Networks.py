@@ -416,7 +416,7 @@ def clean_pyq_text(text):
         "Total No. of Questions", "Total No. of Pages", "SEAT No.:", 
         "Instructions to the candidates", "Assume Suitable data", 
         "Neat diagrams must be drawn", "Attempt four questions",
-        "Max. Marks", "P.T.O.", "Semester - I", "Artificial Intelligence",
+        "Max. Marks", "P.T.O.", "Semester - I", "Computer Networks",
         "Time:", "Pattern"
     ]
     for phrase in junk_phrases:
