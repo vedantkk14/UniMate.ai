@@ -784,8 +784,6 @@ def main():
             st.session_state.hci_messages = []
             st.session_state.hci_chat_history = []
             st.rerun()
-
-        st.markdown("---")
         
         # st.markdown("### ⚙️ Database Settings")
         

@@ -575,7 +575,6 @@ def main():
             st.session_state.ai_chat_history = []
             st.rerun()
 
-        st.markdown("----")
 
         # # Button to recreate vector database
         # if st.button("🔄 Rebuild Vector Database", use_container_width=True):

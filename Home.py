@@ -11,11 +11,6 @@ from pypdf import PdfReader
 from datetime import datetime
 import re
 
-# NEW IMPORTS FOR OCR
-import pytesseract
-from pdf2image import convert_from_bytes
-from PIL import Image
-
 # libraries for generating pdfs
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -60,7 +55,7 @@ def clean_text(text):
     
     # Normalize quotes
     text = text.replace('"', '"').replace('"', '"')
-    text = text.replace(''', "'").replace(''', "'")
+    text = text.replace("'", "'").replace("'", "'")
     
     # Remove page numbers (common pattern: Page X or X)
     text = re.sub(r'\bPage\s+\d+\b', '', text, flags=re.IGNORECASE)
@@ -377,22 +372,12 @@ def main():
         
         st.markdown("----")
         
-        # Chat Controls Section
-        st.markdown("### 🎛️ Chat Controls")
-        
-        if st.button("🗑️ Clear Chat History", use_container_width=True):
-            st.session_state.messages = []
-            st.session_state.chat_history = []
-            st.rerun()
-        
         # if st.button("🔄 Reset Everything", use_container_width=True):
         #     st.session_state.messages = []
         #     st.session_state.knowledge_base = None
         #     st.session_state.chat_history = []
         #     st.rerun()
         
-        st.markdown("---")
-
         st.markdown("### 📜 Export Chat")
         
         # PDF generation button
@@ -414,68 +399,55 @@ def main():
                     st.error(f"❌ Error generating PDF: {str(e)}")
             else:
                 st.warning("⚠️ No conversation to export. Start chatting first!")
-        
+
         st.markdown("---")
-        st.markdown("### ℹ️ About")
-        st.markdown("""
-        I'm your friendly AI assistant! I can:
-        - Answer general questions
-        - Search the web when needed
-        - Analyze PDF documents
-        - Remember our conversation
-        """)
-    
+        # Chat Controls Section
+        st.markdown("### 🎛️ Chat Controls")
+        
+        if st.button("🗑️ Clear Chat History", use_container_width=True):
+            st.session_state.messages = []
+            st.session_state.chat_history = []
+            st.rerun()
+            
     # Process PDF if uploaded
     if pdf is not None:
         if st.session_state.knowledge_base is None:
             with st.spinner("Processing PDF..."):
                 
-                # --- MODIFIED SECTION START ---
                 raw_text = ""
                 try:
-                    # 1. Attempt standard text extraction
+                    # Attempt standard text extraction
                     pdf_reader = PdfReader(pdf)
                     for page in pdf_reader.pages:
                         extracted = page.extract_text()
                         if extracted:
                             raw_text += extracted + " "
                     
-                    # 2. Check if extraction failed (indicative of image/scanned PDF)
-                    # We check if raw_text is empty or contains very little valid data
-                    if len(raw_text.strip()) < 50:
-                        st.warning("⚠️ Scanned PDF detected. Converting images to text (OCR)... This may take a moment.")
-                        
-                        # Reset file pointer to beginning for pdf2image
-                        pdf.seek(0)
-                        
-                        # Convert PDF bytes to images
-                        images = convert_from_bytes(pdf.read())
-                        
-                        # Perform OCR on each page
-                        for image in images:
-                            ocr_text = pytesseract.image_to_string(image)
-                            raw_text += ocr_text + " "
-                            
+                    if not raw_text.strip():
+                        st.warning("⚠️ Warning: No text extracted. Scanned PDFs/images are not supported.")
+
                 except Exception as e:
                     st.error(f"Error during PDF processing: {str(e)}")
                 
-                # 3. Clean and normalize the text (works for both standard and OCR text)
+                # Clean and normalize the text
                 text = clean_text(raw_text)
-                # --- MODIFIED SECTION END ---
                 
-                # Split into chunks
-                text_splitter = CharacterTextSplitter(
-                    separator="\n",
-                    chunk_size=1000,
-                    chunk_overlap=200,
-                    length_function=len
-                )
-                chunks = text_splitter.split_text(text)
-                
-                # Generate embeddings + Vector DB
-                embeddings = get_embeddings()
-                st.session_state.knowledge_base = FAISS.from_texts(chunks, embeddings)
-                st.success("✅ PDF processed successfully! You can now ask questions about it.")
+                if text:
+                    # Split into chunks
+                    text_splitter = CharacterTextSplitter(
+                        separator="\n",
+                        chunk_size=1000,
+                        chunk_overlap=200,
+                        length_function=len
+                    )
+                    chunks = text_splitter.split_text(text)
+                    
+                    # Generate embeddings + Vector DB
+                    embeddings = get_embeddings()
+                    st.session_state.knowledge_base = FAISS.from_texts(chunks, embeddings)
+                    st.success("✅ PDF processed successfully! You can now ask questions about it.")
+                else:
+                    st.error("❌ Could not process PDF content.")
     
     # User input at the bottom
     user_question = st.chat_input("Ask anything..." if pdf is None else "Ask about the PDF or anything else...")

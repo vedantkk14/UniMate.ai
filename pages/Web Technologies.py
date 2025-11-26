@@ -783,8 +783,6 @@ def main():
             st.session_state.wt_messages = []
             st.session_state.wt_chat_history = []
             st.rerun()
-
-        st.markdown("---")
         
         # st.markdown("### ⚙️ Database Settings")
         # # Test mode toggle

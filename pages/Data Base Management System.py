@@ -517,8 +517,6 @@ def main():
             st.session_state.dbms_messages = []
             st.session_state.dbms_chat_history = []
             st.rerun()
-
-        st.markdown("----")
         
         # st.markdown("### 🗄️ Database Management")
         

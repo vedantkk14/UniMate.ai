@@ -647,8 +647,6 @@ def main():
             st.session_state.cn_chat_history = []
             st.rerun()
 
-        st.markdown("---")
-
 
         # # Button to recreate vector database
         # if st.button("🔄 Rebuild Vector Database", use_container_width=True):
