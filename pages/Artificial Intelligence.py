@@ -361,8 +361,6 @@ def main():
                     if quiz:
                         st.session_state.ai_quiz_data = quiz
                         st.success("✅ Quiz generated! Scroll down to take it.")
-
-                        st.rerun()
                     else:
                         st.error("❌ Failed to generate valid questions. Try again.")
         
