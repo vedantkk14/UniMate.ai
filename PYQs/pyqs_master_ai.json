@@ -1,10 +1,16 @@
 {
 
-"Unit 3": [{"question": "What are the issues that need to be addressed for solving CSP efficiently? Explain the Solutions to them.", "count": 1}, 
-            {"question": "Explain heuristic function that can be used in cutting off search in detail.", "count": 1}, 
+"Unit 3": [{"question": "Define Game theory. Differentiate between stochastic and partial gameswith examples. ", "count": 2}, 
+            {"question": "What is Constraint satisfaction problem, what are its issues. State Types of consistencies Solve the following coloring problem using constraints satisfaction problem. ", "count": 4}, 
             {"question": "Explain Alpha-Beta Tree search and cutoff procedure in detail with an example.", "count": 1}, 
-            {"question": "Define constraints in CSPs. Explain any two types of constraints in detail.", "count": 1}, 
-            {"question": "What are the limitations of Game search algorithms?", "count": 1}], 
+            {"question": "List all strategies of problem solving. What is backtracking, explain with n queen problem with Branch and Bound or Backtracking strategy.", "count": 1}, 
+            {"question": "How to make optimal decision in Games. Explain Monte Carlo Tree search algorithm with all steps and one example.", "count": 1}, 
+            {"question": "What are the limitations of Game search algorithms?", "count": 1}, 
+            {"question": "Explain Min Max and Alpha Beta pruning algorithm for adversarial search with eg.", "count": 1}, 
+            {"question": "Explain with example graph coloring problem", "count": 1}, 
+            {"question": "How AI technique is used to solve tic-tac-toe problem.", "count": 1}, 
+            {"question": "Explain heuristic function that can be used in cutting off search in detail.", "count": 1}, 
+            {"question": "Explain n-queen prob in CSP.", "count": 1}],
 
 "Unit 4": [{"question": "What are the various approaches to knowledge representation? Explain in detail.", "count": 1}, 
             {"question": "Detail the algorithm for deciding entailment in propositional logic.", "count": 1}, 
