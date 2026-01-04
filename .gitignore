@@ -9,3 +9,5 @@ models.txt
 demo_json/
 
 cache/
+
+__pycache__/

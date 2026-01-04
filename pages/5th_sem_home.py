@@ -10,6 +10,8 @@ import streamlit as st
 from pypdf import PdfReader
 from datetime import datetime
 import re
+import database as db  
+import time
 
 # libraries for generating pdfs
 from reportlab.lib.pagesizes import letter
@@ -19,6 +21,25 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
 from reportlab.lib.enums import TA_LEFT, TA_RIGHT
 from reportlab.lib.colors import HexColor
 import io
+
+if "authenticated" not in st.session_state or not st.session_state.authenticated:
+    st.warning("⚠️ Please login to access this page")
+    st.info("👉 Click the button below to go to the login page")
+    if st.button("Go to Login", type="primary"):
+        st.switch_page("login.py")
+    st.stop()
+
+# Add this after authentication check in all 5th semester pages
+st.set_page_config(page_title="5th Semester", page_icon="📘")
+
+# Hide default Streamlit pages navigation
+st.markdown("""
+    <style>
+    [data-testid="stSidebarNav"] {
+        display: none;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 # LLM Model (HuggingFace Endpoint)
 def chat_model():
@@ -198,6 +219,7 @@ def generate_chat_pdf(messages):
     
     return pdf_data
 
+# main functn that displays output: reads user query-> checks for ans in vectordb -> if no response -> checks in its own knowedge base -> if not found then performs google search
 def get_general_response(user_question, chat_history):
     """
     Get response from the AI model using its own knowledge base
@@ -331,7 +353,16 @@ def parse_quiz_content(text):
 # MAIN APP
 def main():
     load_dotenv()
-    st.set_page_config(page_title="AI Assistant", layout="centered", page_icon="🤖")
+    st.set_page_config(page_title="5th Semester", layout="centered", page_icon="📘")
+
+    # Hide default Streamlit navigation
+    st.markdown("""
+        <style>
+        [data-testid="stSidebarNav"] {
+            display: none;
+        }
+        </style>
+    """, unsafe_allow_html=True)
     
     # Initialize session state
     if "messages" not in st.session_state:
@@ -344,11 +375,61 @@ def main():
     if "quiz_data" not in st.session_state:
         st.session_state.quiz_data = None
     
-    st.header("🤖 UniMate AI - Your Friendly Helper")
-    
+    # Get user info
+    user = st.session_state.user
+
+    # Updated header with user name
+    st.header(f"🤖 UniMate AI - Welcome, {user['name']}!")
+
+    # Show current semester
+    selected_semester = st.session_state.get('selected_semester', user['study_year'])
+    st.info(f"📚 Current Learning Path: **{selected_semester}**")
+        
     # Sidebar with PDF upload and controls
     with st.sidebar:
+
+        # Navigation buttons
+        if st.button("🏠 Back to Dashboard", use_container_width=True):
+            st.switch_page("login.py")
         
+        if st.button("🚪 Logout", use_container_width=True):
+            st.session_state.authenticated = False
+            st.session_state.user = None
+            st.switch_page("login.py")
+        
+        st.markdown("---")
+        
+        st.markdown("### 📚 5th Semester Subjects")
+        
+        if st.button("🏠 Home", use_container_width=True):
+            st.switch_page("pages/5th_sem_home.py")
+        
+        if st.button("📘 AI", use_container_width=True):
+            st.switch_page("pages/5th_sem_AI.py")
+        
+        if st.button("📗 CN", use_container_width=True):
+            st.switch_page("pages/5th_sem_cn.py")
+        
+        if st.button("📙 DBMS", use_container_width=True):
+            st.switch_page("pages/5th_sem_dbms.py")
+        
+        if st.button("📕 HCI", use_container_width=True):
+            st.switch_page("pages/5th_sem_hci.py")
+        
+        if st.button("📓 WT", use_container_width=True):
+            st.switch_page("pages/5th_sem_wt.py")
+        
+        st.markdown("---")
+        
+        # User Profile (your existing code)
+        st.markdown("### 👤 Your Profile")
+        user = st.session_state.user
+        st.write(f"**{user['name']}**")
+        st.write(f"📧 {user['email']}")
+        st.write(f"🎓 5th Semester")
+            
+        st.markdown("---")
+
         # PDF Upload Section
         st.markdown("### 📁 Upload Document (Optional)")
         st.markdown("Upload a PDF to ask questions about its content")
