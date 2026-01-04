@@ -23,9 +23,7 @@ def show_semester_selection():
     with st.sidebar:
         st.title("👤 Profile")
         st.subheader(user['name'])
-        st.caption(f"{user['college']}")
-        
-        st.markdown("---")
+        st.write(f"**🏫 College:** {user['college']}")
         st.write(f"**📧 Email:** {user['email']}")
         st.write(f"**📚 Current:** {user['study_year']}")
         if user.get('department') and user['department'] != 'Not specified':
@@ -75,10 +73,7 @@ def show_semester_selection():
             
             if st.button("Enter 5th Sem", use_container_width=True, type="primary", key="sem_5"):
                 st.session_state.selected_semester = "5th Semester"
-                try:
-                    st.switch_page("pages/sem5_home.py")
-                except:
-                    st.error("Page not found: pages/sem5_home.py")
+                st.switch_page("pages/sem5_home.py")
     
     # 6th Semester Card
     with col2:
@@ -89,18 +84,19 @@ def show_semester_selection():
             
             if st.button("Enter 6th Sem", use_container_width=True, key="sem_6"):
                 st.session_state.selected_semester = "6th Semester"
-                try:
-                    st.switch_page("pages/sem6_home.py")
-                except:
-                    st.toast("6th Semester content is under construction", icon="🚧")
+                st.switch_page("pages/sem6_home.py")
 
-    # Future Semesters (Visual Placeholders)
+# Future Semesters (Visual Placeholders)
     st.markdown("#### Upcoming Modules")
     c1, c2, c3, c4 = st.columns(4)
+    
     with c1:
-        st.button("7th Sem", disabled=True, use_container_width=True)
+        if st.button("7th Sem", use_container_width=True):
+            st.toast("Sem 7th is coming soon!", icon="🚧")
+            
     with c2:
-        st.button("8th Sem", disabled=True, use_container_width=True)
+        if st.button("8th Sem", use_container_width=True):
+            st.toast("Sem 8th is coming soon!", icon="🚧")
 
     st.markdown("---")
     
@@ -148,7 +144,7 @@ def main():
     """Main function for testing independent execution"""
     st.set_page_config(
         page_title="UniMate AI - Dashboard",
-        layout="wide",
+        layout="centered",
         page_icon="🎓"
     )
     

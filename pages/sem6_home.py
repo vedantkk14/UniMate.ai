@@ -413,8 +413,8 @@ def main():
             st.info("🚧 Content for CS coming soon!")
         
         if st.button("📙 Artificial Neural Network", use_container_width=True):
-            # st.switch_page("pages/sem5_ann.py")
-            st.info("🚧 Content for ANNs coming soon!")
+            st.switch_page("pages/sem6_ann.py")
+            # st.info("🚧 Content for ANNs coming soon!")
         
         # if st.button("📕 HCI", use_container_width=True):
         #     st.switch_page("pages/sem5_hci.py")

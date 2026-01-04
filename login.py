@@ -61,7 +61,11 @@ def show_login_page():
                         if success:
                             st.session_state.authenticated = True
                             st.session_state.user = user_data
+                            st.session_state.persistent_login = True  # Add this flag
                             st.success(f"✅ Welcome back, {user_data['name']}!")
+                            st.balloons()
+                            
+                            import time
                             time.sleep(1)
                             st.rerun()
                         else:
@@ -156,9 +160,9 @@ def show_semester_selection():
         st.markdown("### Quick Access")
         if st.button("📚 Go to 5th Semester", use_container_width=True, type="primary"):
             try:
-                st.switch_page("pages/home.py")
+                st.switch_page("pages/sem5_home.py")
             except:
-                st.error("pages/home.py not found")
+                st.error("pages/sem5_home.py not found")
         
         if st.button("🔒 Logout", use_container_width=True):
             st.session_state.authenticated = False

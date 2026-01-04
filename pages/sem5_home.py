@@ -422,12 +422,13 @@ def main():
         st.markdown("---")
         
         # User Profile (your existing code)
-        st.markdown("### 👤 Your Profile")
-        user = st.session_state.user
-        st.write(f"**Name: ** {user['name']}")
-        st.write(f"**📧 Email:** {user['email']}")
+        st.title("👤 Profile")
+        st.subheader(user['name'])
         st.write(f"**🏫 College:** {user['college']}")
-        st.write(f"**📚 Semester:** {user['study_year']}")
+        st.write(f"**📧 Email:** {user['email']}")
+        st.write(f"**📚 Current:** {user['study_year']}")
+        if user.get('department') and user['department'] != 'Not specified':
+            st.write(f"**🎓 Dept:** {user['department']}")
             
         st.markdown("---")
 
