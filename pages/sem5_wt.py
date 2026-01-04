@@ -1,4 +1,4 @@
-# for HCI
+# for WT
 
 # langchain libraries
 import os
@@ -45,7 +45,7 @@ def get_embeddings():
 
 def clean_text(text):
     """
-    Simple text cleaning for purely text-based HCI textbook.
+    Simple text cleaning for purely text-based Web Technology textbook.
     """
     if not text:
         return ""
@@ -99,14 +99,14 @@ def web_search_fallback(query: str) -> str:
 
         structured_prompt = PromptTemplate(
             template="""
-            You are a Human Computer Interface (HCI) expert assistant. 
+            You are a Web Technology (WT) expert assistant. 
             A user asked: "{query}"
 
             Here are the web search results:
             {search_results}
 
             Please provide a clear, structured answer to the user's question based on these search results.
-            Keep it concise and relevant to Human Computer Interface concepts.
+            Keep it concise and relevant to Web Technology concepts.
             """,
             input_variables=['query', 'search_results'],
             validate_template=True
@@ -124,10 +124,10 @@ def web_search_fallback(query: str) -> str:
     except Exception as e:
         return f"An error occurred during web search fallback: {str(e)}"
     
-def load_and_create_vectordb(pdf_path='pdfs/hci_tb.pdf', 
-                             vectordb_dir='vectordb/hci_faiss',
-                             cache_dir='cache',
-                             test_mode=False):
+def load_and_create_vectordb(pdf_path='pdfs/wt_tb.pdf', 
+                        vectordb_dir='vectordb/wt_faiss',
+                        cache_dir='cache',
+                        test_mode=False):
     """
     Load PDF, clean text, create chunks and build FAISS vector database.
     Uses cached OCR results if available.
@@ -147,7 +147,6 @@ def load_and_create_vectordb(pdf_path='pdfs/hci_tb.pdf',
             return vectordb
         except Exception as e:
             st.warning(f"⚠️ Could not load existing database: {str(e)}. Creating new one...")
-
 
 def clean_and_format_pdf_text(text):
     """Clean markdown and special characters, convert to HTML"""
@@ -238,7 +237,7 @@ def generate_chat_pdf(messages):
     )
     
     # Add title
-    title = Paragraph("HCI Chatbot Conversation", title_style)
+    title = Paragraph("WT Chatbot Conversation", title_style)
     elements.append(title)
     
     # Add timestamp
@@ -296,7 +295,7 @@ def generate_quiz_from_history(chat_history):
 
     # Strict prompt to ensure consistent formatting for parsing
     quiz_prompt = f"""
-    You are a teacher. Based strictly on the following conversation history about Human Computer Interface(HCI), generate 5 multiple-choice questions (MCQs) to test the user's understanding of the topics discussed.
+    You are a teacher. Based strictly on the following conversation history about Web-Technology(WT), generate 5 multiple-choice questions (MCQs) to test the user's understanding of the topics discussed.
     
     Conversation History:
     {history_text}
@@ -401,7 +400,7 @@ def extract_questions_with_numbers(text):
     3. Ignore marks like "(10 marks)".
     5. Ignore marks printed in front of every question " [9]".
     6. If a question has sub-parts (a, b), treat them as individual questions and then remove the (a, b, c) question name.
-       Example: "1a :: Define AI" or "1 :: Define SQL".
+       Example: "1a :: Define AI" or "1 :: Define WT".
     
     Output Example:
     1 :: What is normalization?
@@ -453,9 +452,9 @@ def process_pyq_pdfs(folder_path=None, force_reprocess=False):
     # --- PATH SETUP ---
     if folder_path is None:
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        folder_path = os.path.join(base_dir, 'pyq_pdfs', 'hci')
+        folder_path = os.path.join(base_dir, 'pyq_pdfs', 'wt')
         
-    output_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "PYQs/pyqs_master_hci.json")
+    output_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "PYQs/pyqs_master_wt.json")
 
     # --- NEW LOGIC: CHECK IF JSON EXISTS ---
     if os.path.exists(output_file) and not force_reprocess:
@@ -470,7 +469,6 @@ def process_pyq_pdfs(folder_path=None, force_reprocess=False):
 
 def main():
     load_dotenv()
-
     st.set_page_config(page_title="5th Semester", layout="centered", page_icon="📘")
 
     # Hide default Streamlit navigation
@@ -482,29 +480,27 @@ def main():
         </style>
     """, unsafe_allow_html=True)
 
-    st.title("📘 Chat HCI")
-
     with st.sidebar:
 
         st.markdown("### 📚 5th Semester Subjects")
         
         if st.button("🏠 Home", use_container_width=True):
-            st.switch_page("pages/5th_sem_home.py")
+            st.switch_page("pages/sem5_home.py")
         
         if st.button("📘 AI", use_container_width=True):
-            st.switch_page("pages/5th_sem_AI.py")
+            st.switch_page("pages/sem5_ai.py")
         
         if st.button("📗 CN", use_container_width=True):
-            st.switch_page("pages/5th_sem_cn.py")
+            st.switch_page("pages/sem5_cn.py")
         
         if st.button("📙 DBMS", use_container_width=True):
-            st.switch_page("pages/5th_sem_dbms.py")
+            st.switch_page("pages/sem5_dbms.py")
         
         if st.button("📕 HCI", use_container_width=True):
-            st.switch_page("pages/5th_sem_hci.py")
+            st.switch_page("pages/sem5_hci.py")
         
         if st.button("📓 WT", use_container_width=True):
-            st.switch_page("pages/5th_sem_wt.py")
+            st.switch_page("pages/sem5_wt.py")
         
         st.markdown("---")
         
@@ -534,17 +530,19 @@ def main():
             st.session_state.selected_semester = "6th Semester"
             st.switch_page("pages/6th_sem_home.py")
         # =====================================================
+    
+        st.markdown("---")
 
         st.markdown("### 📝 Knowledge Check")
         
         if st.button("Generate Quiz from Chat", use_container_width=True):
-            if len(st.session_state.hci_chat_history) < 2:
+            if len(st.session_state.wt_chat_history) < 2:
                 st.warning("⚠️ Chat more with the bot first to generate a context-aware quiz!")
             else:
                 with st.spinner("👩‍🏫 Analyzing conversation and crafting questions..."):
-                    quiz = generate_quiz_from_history(st.session_state.hci_chat_history[-10:])
+                    quiz = generate_quiz_from_history(st.session_state.wt_chat_history[-10:])
                     if quiz:
-                        st.session_state.hci_quiz_data = quiz
+                        st.session_state.wt_quiz_data = quiz
                         st.success("✅ Quiz generated! Scroll down to take it.")
                     else:
                         st.error("❌ Failed to generate valid questions. Try again.")
@@ -555,7 +553,7 @@ def main():
         if st.button("🧠 Analyze PYQ Papers", use_container_width=True):
             with st.spinner("Reading PDFs, extracting questions, and checking duplicates..."):
                 # Run the processor
-                result = process_pyq_pdfs('pyq_pdfs/hci')
+                result = process_pyq_pdfs('pyq_pdfs/wt')
                 
                 if result == "FOLDER_MISSING":
                     st.error("❌ Folder 'pyq_pdfs' not found!")
@@ -564,24 +562,23 @@ def main():
                 else:
                     st.success(f"✅ Processed! Found {len(result)} unique questions.")
                     # [NEW] Set the flag to True so the dashboard appears
-                    st.session_state.hci_show_pyq_results = True 
+                    st.session_state.wt_show_pyq_results = True 
                     st.rerun()
         
         st.markdown("----")
 
-        st.markdown("### 📜 Generate PDF")
-
         # PDF generation button
+        st.markdown("### 📜 Generate PDF")
         if st.button("📥 Download Conversation as PDF", use_container_width=True):
-            if "hci_messages" in st.session_state and st.session_state.hci_messages:
+            if "wt_messages" in st.session_state and st.session_state.wt_messages:
                 try:
-                    pdf_data = generate_chat_pdf(st.session_state.hci_messages)
+                    pdf_data = generate_chat_pdf(st.session_state.wt_messages)
                     
                     # Create download button
                     st.download_button(
                         label="💾 Click to Download PDF",
                         data=pdf_data,
-                        file_name=f"hci_chat_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                        file_name=f"wt_chat_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
                         mime="application/pdf",
                         use_container_width=True
                     )
@@ -596,12 +593,11 @@ def main():
         st.markdown("### 🎛️ Chat Controls")
 
         if st.button("🗑️ Clear Chat History", use_container_width=True):
-            st.session_state.hci_messages = []
-            st.session_state.hci_chat_history = []
+            st.session_state.wt_messages = []
+            st.session_state.wt_chat_history = []
             st.rerun()
         
         # st.markdown("### ⚙️ Database Settings")
-        
         # # Test mode toggle
         # test_mode = st.checkbox("🧪 Test Mode (10 pages only)", value=False, 
         #                        help="Process only first 10 pages for faster testing")
@@ -621,7 +617,7 @@ def main():
         
         # # Button to recreate vector database
         # if st.button("🔄 Rebuild Vector Database", use_container_width=True):
-        #     vectordb_path = 'vectordb/hci_faiss'
+        #     vectordb_path = 'vectordb/wt_faiss'
         #     try:
         #         # Remove existing database
         #         if os.path.exists(vectordb_path):
@@ -631,48 +627,49 @@ def main():
                 
         #         # Recreate database
         #         with st.spinner("Rebuilding vector database..."):
-        #             st.session_state.hci_vectordb = load_and_create_vectordb(test_mode=test_mode)
+        #             st.session_state.wt_vectordb = load_and_create_vectordb(test_mode=test_mode)
                     
-        #         if st.session_state.hci_vectordb:
+        #         if st.session_state.wt_vectordb:
         #             st.success("✅ Database rebuilt successfully!")
         #             st.rerun()
         #         else:
         #             st.error("❌ Failed to rebuild database")
         #     except Exception as e:
         #         st.error(f"❌ Error rebuilding database: {str(e)}")
+        
         # st.markdown("---")
 
         # Status indicator
         st.markdown("### 📊 Status")
-        if "hci_vectordb" in st.session_state and st.session_state.hci_vectordb:
+        if "wt_vectordb" in st.session_state and st.session_state.wt_vectordb:
             st.success("✅ Database Ready")
         else:
             st.warning("⚠️ Database Not Loaded")
 
     # Initialize session state
-    if "hci_messages" not in st.session_state:
-        st.session_state.hci_messages = []
+    if "wt_messages" not in st.session_state:
+        st.session_state.wt_messages = []
     
-    if "hci_chat_history" not in st.session_state:
-        st.session_state.hci_chat_history = []
+    if "wt_chat_history" not in st.session_state:
+        st.session_state.wt_chat_history = []
 
     # for quiz questions
-    if "hci_quiz_data" not in st.session_state:
-        st.session_state.hci_quiz_data = None
+    if "wt_quiz_data" not in st.session_state:
+        st.session_state.wt_quiz_data = None
 
     # for pyq visibility
-    if "hci_show_pyq_results" not in st.session_state:
-        st.session_state.hci_show_pyq_results = False
+    if "wt_show_pyq_results" not in st.session_state:
+        st.session_state.wt_show_pyq_results = False
     
-    if "hci_vectordb" not in st.session_state:
-        st.info("🚀 Initializing HCI knowledge base...")
+    if "wt_vectordb" not in st.session_state:
+        st.info("🚀 Initializing WT knowledge base...")
         st.info("💡 Tip: First time setup may take 5-10 minutes. Results will be cached for future use.")
         
         try:
-            with st.spinner("Loading HCI knowledge base... Please wait..."):
-                st.session_state.hci_vectordb = load_and_create_vectordb()
+            with st.spinner("Loading WT knowledge base... Please wait..."):
+                st.session_state.wt_vectordb = load_and_create_vectordb()
             
-            if st.session_state.hci_vectordb:
+            if st.session_state.wt_vectordb:
                 st.success("✅ Knowledge base loaded successfully! You can now start chatting.")
                 st.balloons()
             else:
@@ -686,14 +683,14 @@ def main():
 # --- PYQ DASHBOARD SECTION ---
     current_script_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(current_script_dir)
-    json_path = os.path.join(project_root, "PYQs/pyqs_master_hci.json")
+    json_path = os.path.join(project_root, "PYQs/pyqs_master_wt.json")
 
     # COMBINED CHECK: File must exist AND the flag must be True
-    if st.session_state.hci_show_pyq_results and os.path.exists(json_path):
+    if st.session_state.wt_show_pyq_results and os.path.exists(json_path):
         
         # 1. Show the Close Button
         if st.button("❌ Close Analysis View", key="close_pyq"):
-            st.session_state.hci_show_pyq_results = False
+            st.session_state.wt_show_pyq_results = False
             st.rerun()
             
         # 2. Show the Content (Inside the same IF block!)
@@ -734,17 +731,17 @@ def main():
                 st.error(f"Error loading PYQ data: {e}")
 
     # Get user input
-    user_input = st.chat_input("Ask anything about HCI...")
+    user_input = st.chat_input("Ask anything about WT...")
 
     # Process user input
     if user_input:
         # Add user message to session state
-        st.session_state.hci_messages.append({
+        st.session_state.wt_messages.append({
             "role": "user",
             "content": user_input
         })
 
-        current_chat_history = st.session_state.hci_chat_history.copy()
+        current_chat_history = st.session_state.wt_chat_history.copy()
 
         # Check if it's a casual greeting
         casual_greeting = ['hi', 'hello', 'hey', 'greetings', 'good morning', 'good afternoon', 'good evening']
@@ -753,7 +750,7 @@ def main():
         # Handle casual greetings
         if is_casual and len(user_input.split()) <= 3:
             prompt = ChatPromptTemplate.from_messages([
-                ("system", "You are a friendly HCI expert assistant. Respond warmly to greetings."),
+                ("system", "You are a friendly WT expert assistant. Respond warmly to greetings."),
                 MessagesPlaceholder(variable_name="chat_history"),
                 ("human", "{question}")
             ])
@@ -773,14 +770,14 @@ def main():
         
         # Handle regular questions with RAG
         else:
-            retriever = st.session_state.hci_vectordb.as_retriever(
+            retriever = st.session_state.wt_vectordb.as_retriever(
                 search_type="similarity",
                 search_kwargs={"k": 4}
             )
 
             prompt = ChatPromptTemplate.from_messages([
-                ("system", """You are an expert Human Computer Interface (HCI) assistant who has mastered all the concepts of Human Computer Interface.
-Answer the question using the context extracted from the HCI textbook and the previous conversation.
+                ("system", """You are an expert Web Technology (WT) assistant who has mastered all the concepts of Web Technology.
+Answer the question using the context extracted from the WT textbook and the previous conversation.
 
 Guidelines for your response:
 - Provide a **detailed yet concise** explanation.
@@ -819,9 +816,9 @@ AI Context:
                         answer = f"ℹ️ *From web search:*\n\n{answer}"
 
         # Update chat history
-        st.session_state.hci_chat_history.append(HumanMessage(content=user_input))
-        st.session_state.hci_chat_history.append(AIMessage(content=answer))
-        st.session_state.hci_messages.append({"role": "assistant", "content": answer})
+        st.session_state.wt_chat_history.append(HumanMessage(content=user_input))
+        st.session_state.wt_chat_history.append(AIMessage(content=answer))
+        st.session_state.wt_messages.append({"role": "assistant", "content": answer})
 
         st.rerun()
 
@@ -829,7 +826,7 @@ AI Context:
     st.markdown("---")
     chat_container = st.container()
     with chat_container:
-        for message in st.session_state.hci_messages:  
+        for message in st.session_state.wt_messages:  
             if message["role"] == "user":
                 st.markdown(f"""
                 <div style='text-align: right; margin: 10px 0;'>
@@ -851,7 +848,7 @@ AI Context:
                 </div>
                 """, unsafe_allow_html=True)
 
-    if st.session_state.hci_quiz_data:
+    if st.session_state.wt_quiz_data:
         st.markdown("---")
         with st.expander("📝 Take the Quiz", expanded=True):
             st.subheader("Test Your Understanding")
@@ -860,7 +857,7 @@ AI Context:
                 score = 0
                 user_answers = {}
                 
-                for i, q in enumerate(st.session_state.hci_quiz_data):
+                for i, q in enumerate(st.session_state.wt_quiz_data):
                     st.markdown(f"**{i+1}. {q['question']}**")
                     # Radio button for options
                     user_choice = st.radio(
@@ -876,7 +873,7 @@ AI Context:
                 
                 if submitted:
                     correct_count = 0
-                    for i, q in enumerate(st.session_state.hci_quiz_data):
+                    for i, q in enumerate(st.session_state.wt_quiz_data):
                         user_choice = user_answers.get(i)
                         # Extract the letter (A, B, C, D) from the user's choice string
                         user_letter = user_choice.split(')')[0] if user_choice else None
@@ -887,8 +884,8 @@ AI Context:
                         else:
                             st.error(f"Q{i+1}: Incorrect. The correct answer was {q['correct']}.")
                     
-                    percentage = (correct_count / len(st.session_state.hci_quiz_data)) * 100
-                    st.metric(label="Final Score", value=f"{percentage}%", delta=f"{correct_count}/{len(st.session_state.hci_quiz_data)} Correct")
+                    percentage = (correct_count / len(st.session_state.wt_quiz_data)) * 100
+                    st.metric(label="Final Score", value=f"{percentage}%", delta=f"{correct_count}/{len(st.session_state.wt_quiz_data)} Correct")
                     
                     if percentage == 100:
                         st.balloons()

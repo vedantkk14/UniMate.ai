@@ -402,22 +402,22 @@ def main():
         st.markdown("### 📚 5th Semester Subjects")
         
         if st.button("🏠 Home", use_container_width=True):
-            st.switch_page("pages/5th_sem_home.py")
+            st.switch_page("pages/sem5_home.py")
         
         if st.button("📘 AI", use_container_width=True):
-            st.switch_page("pages/5th_sem_AI.py")
+            st.switch_page("pages/sem5_ai.py")
         
         if st.button("📗 CN", use_container_width=True):
-            st.switch_page("pages/5th_sem_cn.py")
+            st.switch_page("pages/sem5_cn.py")
         
         if st.button("📙 DBMS", use_container_width=True):
-            st.switch_page("pages/5th_sem_dbms.py")
+            st.switch_page("pages/sem5_dbms.py")
         
         if st.button("📕 HCI", use_container_width=True):
-            st.switch_page("pages/5th_sem_hci.py")
+            st.switch_page("pages/sem5_hci.py")
         
         if st.button("📓 WT", use_container_width=True):
-            st.switch_page("pages/5th_sem_wt.py")
+            st.switch_page("pages/sem5_wt.py")
         
         st.markdown("---")
         

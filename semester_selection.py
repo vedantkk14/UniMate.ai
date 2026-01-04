@@ -127,12 +127,12 @@ def show_semester_selection():
     with col1:
         if st.button("📙 5th Semester", use_container_width=True, type="primary", key="sem_5"):
             st.session_state.selected_semester = "5th Semester"
-            st.switch_page("pages/5th_sem_home.py")
+            st.switch_page("pages/sem5_home.py")
     
     with col2:
         if st.button("📕 6th Semester", use_container_width=True, type="primary", key="sem_6"):
             st.session_state.selected_semester = "6th Semester"
-            st.switch_page("pages/6th_sem_home.py")
+            st.switch_page("pages/sem6_home.py")
             # st.info("🚧 Content for 6th semester coming soon!")
     
     # Additional semesters
