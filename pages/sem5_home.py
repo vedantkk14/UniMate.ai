@@ -424,9 +424,10 @@ def main():
         # User Profile (your existing code)
         st.markdown("### 👤 Your Profile")
         user = st.session_state.user
-        st.write(f"**{user['name']}**")
-        st.write(f"📧 {user['email']}")
-        st.write(f"🎓 5th Semester")
+        st.write(f"**Name: ** {user['name']}")
+        st.write(f"**📧 Email:** {user['email']}")
+        st.write(f"**🏫 College:** {user['college']}")
+        st.write(f"**📚 Semester:** {user['study_year']}")
             
         st.markdown("---")
 

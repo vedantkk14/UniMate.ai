@@ -12,4 +12,8 @@ cache/
 
 __pycache__/
 
+users.db 
+
 .devcontainer /
+
+student_data.db

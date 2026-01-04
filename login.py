@@ -7,6 +7,7 @@ Save this file as: login.py
 import streamlit as st
 import sys
 import os
+import time
 
 # Add current directory to path to import auth module
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -18,211 +19,106 @@ except ImportError:
     st.stop()
 
 def show_login_page():
-
-    # Hide default Streamlit navigation
+    # Minimal CSS just to hide the default sidebar navigation
     st.markdown("""
         <style>
-        [data-testid="stSidebarNav"] {
-            display: none;
-        }
+        [data-testid="stSidebarNav"] {display: none;}
+        .block-container {padding-top: 3rem;}
         </style>
     """, unsafe_allow_html=True)
     
     # Initialize auth system
     auth = AuthSystem()
     
-    # Custom CSS for styling
-    st.markdown("""
-        <style>
-        .main-header {
-            text-align: center;
-            color: #1f77b4;
-            font-size: 3em;
-            font-weight: bold;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
-        }
-        .sub-header {
-            text-align: center;
-            color: #666;
-            font-size: 1.3em;
-            margin-bottom: 40px;
-            font-style: italic;
-        }
-        .stTabs [data-baseweb="tab-list"] {
-            gap: 24px;
-            background-color: #f0f2f6;
-            border-radius: 10px;
-            padding: 10px;
-        }
-        .stTabs [data-baseweb="tab"] {
-            height: 50px;
-            padding: 10px 20px;
-            background-color: white;
-            border-radius: 8px;
-            font-weight: 600;
-        }
-        .stTabs [aria-selected="true"] {
-            background-color: #1f77b4 !important;
-            color: white !important;
-        }
-        div[data-testid="stForm"] {
-            background-color: #f9f9f9;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        .stButton > button {
-            border-radius: 8px;
-            height: 50px;
-            font-weight: 600;
-            font-size: 16px;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-    
-    # Header
-    st.markdown('<h1 class="main-header">🎓 UniMate AI</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="sub-header">Your Smart Learning Companion</p>', unsafe_allow_html=True)
+    # --- HEADER ---
+    st.title("🎓 UniMate AI")
+    st.markdown("### Your Smart Learning Companion")
+    st.caption("Log in or create an account to access your semester dashboard.")
     
     # Create tabs for Login and Sign Up
-    tab1, tab2 = st.tabs(["🔐 Login", "📝 Sign Up"])
+    tab1, tab2 = st.tabs(["🔐 Login", "📝 Create Account"])
     
     # ================== LOGIN TAB ==================
     with tab1:
-        st.markdown("### Welcome Back! 👋")
-        st.markdown("Enter your credentials to continue your learning journey")
+        st.markdown("<br>", unsafe_allow_html=True) # Spacer
         
         with st.form("login_form"):
-            email = st.text_input(
-                "📧 Email Address",
-                placeholder="your.email@example.com",
-                key="login_email"
-            )
-            password = st.text_input(
-                "🔒 Password",
-                type="password",
-                placeholder="Enter your password",
-                key="login_password"
-            )
+            email = st.text_input("Email Address", placeholder="student@example.com", key="login_email")
+            password = st.text_input("Password", type="password", placeholder="••••••••", key="login_password")
             
-            col1, col2, col3 = st.columns([1, 2, 1])
-            with col2:
-                submit = st.form_submit_button("🚀 Login", use_container_width=True, type="primary")
+            # Simple, clean button
+            submit = st.form_submit_button("🚀 Log In", use_container_width=True, type="primary")
             
             if submit:
                 if not email or not password:
-                    st.error("⚠️ Please fill in all fields")
+                    st.warning("⚠️ Please fill in all fields")
                 elif not auth.validate_email(email):
-                    st.error("⚠️ Please enter a valid email address")
+                    st.warning("⚠️ Please enter a valid email address")
                 else:
-                    with st.spinner("🔍 Verifying credentials..."):
+                    with st.spinner("Verifying..."):
                         success, user_data = auth.login_user(email, password)
                         
                         if success:
-                            # Store user data in session state
                             st.session_state.authenticated = True
                             st.session_state.user = user_data
                             st.success(f"✅ Welcome back, {user_data['name']}!")
-                            st.balloons()
-                            
-                            # Small delay for effect
-                            import time
                             time.sleep(1)
                             st.rerun()
                         else:
-                            st.error("❌ Invalid email or password. Please try again or sign up if you're new.")
+                            st.error("❌ Invalid email or password.")
         
         st.markdown("---")
-        st.info("💡 **New to UniMate AI?** Switch to the Sign Up tab to create your account!")
-    
+        st.caption("New here? Switch to the **Create Account** tab.")
+
     # ================== SIGN UP TAB ==================
     with tab2:
-        st.markdown("### Create Your Account 🌟")
-        st.markdown("Join thousands of students already learning smarter!")
+        st.markdown("<br>", unsafe_allow_html=True) # Spacer
         
         with st.form("signup_form"):
             st.markdown("#### 📋 Personal Information")
             
+            # Using columns for a cleaner, non-scrolling layout
             col1, col2 = st.columns(2)
             
             with col1:
-                name = st.text_input(
-                    "👤 Full Name *",
-                    placeholder="John Doe",
-                    key="signup_name"
-                )
-                email = st.text_input(
-                    "📧 Email Address *",
-                    placeholder="your.email@example.com",
-                    key="signup_email"
-                )
-                password = st.text_input(
-                    "🔒 Password *",
-                    type="password",
-                    placeholder="Minimum 6 characters",
-                    key="signup_password",
-                    help="Choose a strong password with at least 6 characters"
-                )
+                name = st.text_input("Full Name *", placeholder="John Doe", key="signup_name")
+                email = st.text_input("Email Address *", placeholder="john@college.edu", key="signup_email")
+                password = st.text_input("Password *", type="password", help="Min 6 characters", key="signup_password")
                 
             with col2:
-                college = st.text_input(
-                    "🏫 College/University *",
-                    placeholder="ABC Engineering College",
-                    key="signup_college"
-                )
-                study_year = st.selectbox(
-                    "📚 Current Semester *",
-                    ["Select your semester", "1st Semester", "2nd Semester", "3rd Semester", 
+                college = st.text_input("College/University *", placeholder="ABC Institute", key="signup_college")
+                study_year = st.selectbox("Current Semester *", 
+                    ["Select semester...", "1st Semester", "2nd Semester", "3rd Semester", 
                      "4th Semester", "5th Semester", "6th Semester", 
-                     "7th Semester", "8th Semester"],
-                    key="signup_year"
-                )
-                department = st.text_input(
-                    "🎓 Department/Branch",
-                    placeholder="Computer Science (Optional)",
-                    key="signup_dept"
-                )
+                     "7th Semester", "8th Semester"], key="signup_year")
+                department = st.text_input("Department", placeholder="CS/IT (Optional)", key="signup_dept")
             
-            st.markdown("#### 📞 Contact Information")
-            phone = st.text_input(
-                "📱 Phone Number",
-                placeholder="10-digit number (Optional)",
-                key="signup_phone",
-                max_chars=10
-            )
+            # Full width field for phone
+            phone = st.text_input("Phone Number", placeholder="10-digit number (Optional)", max_chars=10, key="signup_phone")
             
             st.markdown("---")
-            st.markdown("_* Required fields_")
             
             # Terms checkbox
-            terms = st.checkbox("I agree to the Terms of Service and Privacy Policy")
+            terms = st.checkbox("I agree to the Terms of Service & Privacy Policy")
             
-            col1, col2, col3 = st.columns([1, 2, 1])
-            with col2:
-                submit = st.form_submit_button(
-                    "🎉 Create Account",
-                    use_container_width=True,
-                    type="primary"
-                )
+            submit = st.form_submit_button("✨ Create Account", use_container_width=True, type="primary")
             
             if submit:
-                # Validation
+                # Validation Logic (Kept exactly as requested)
                 if not terms:
-                    st.error("⚠️ Please agree to the Terms of Service to continue")
-                elif not all([name, email, password, college]) or study_year == "Select your semester":
-                    st.error("⚠️ Please fill in all required fields marked with *")
+                    st.warning("⚠️ Please agree to the Terms of Service")
+                elif not all([name, email, password, college]) or study_year == "Select semester...":
+                    st.error("⚠️ Please fill in all required fields (*)")
                 elif not auth.validate_email(email):
-                    st.error("⚠️ Please enter a valid email address (e.g., user@example.com)")
+                    st.error("⚠️ Invalid email format")
                 elif len(password) < 6:
-                    st.error("⚠️ Password must be at least 6 characters long for security")
+                    st.error("⚠️ Password must be at least 6 characters")
                 elif phone and not auth.validate_phone(phone):
-                    st.error("⚠️ Phone number must be exactly 10 digits")
+                    st.error("⚠️ Phone number must be 10 digits")
                 elif auth.user_exists(email):
-                    st.error("⚠️ This email is already registered. Please use the Login tab instead.")
+                    st.error("⚠️ Email already registered. Please Login.")
                 else:
-                    with st.spinner("🎨 Creating your account..."):
-                        # Register user
+                    with st.spinner("Creating account..."):
                         success, message = auth.register_user(
                             email=email.strip().lower(),
                             password=password,
@@ -234,47 +130,37 @@ def show_login_page():
                         )
                         
                         if success:
-                            st.success("✅ " + message)
+                            st.success(f"✅ {message}")
                             st.balloons()
-                            st.info("👉 **Next Step:** Switch to the Login tab and enter your credentials!")
-                            
-                            # Show success message with user details
-                            with st.expander("📋 Your Registration Details", expanded=True):
-                                st.write(f"**Name:** {name}")
-                                st.write(f"**Email:** {email}")
-                                st.write(f"**College:** {college}")
-                                st.write(f"**Semester:** {study_year}")
-                                if department:
-                                    st.write(f"**Department:** {department}")
+                            st.info("👉 Switch to the **Login** tab to sign in!")
                         else:
-                            st.error("❌ " + message)
-        
-        st.markdown("---")
-        st.info("💡 **Already have an account?** Switch to the Login tab to sign in!")
+                            st.error(f"❌ {message}")
 
 def show_semester_selection():
     """Show semester selection page after successful login"""
+    # Logic unchanged
     try:
         import semester_selection
         semester_selection.show_semester_selection()
     except ImportError:
-        st.error("❌ Error: semester_selection.py not found. Please make sure it's in the same directory.")
-        st.info("Creating a temporary dashboard...")
+        st.error("❌ Error: semester_selection.py not found.")
         
-        # Fallback simple dashboard
+        # Fallback simple dashboard (Visual update only)
         user = st.session_state.user
-        st.title(f"Welcome, {user['name']}! 👋")
-        st.write(f"**Email:** {user['email']}")
-        st.write(f"**College:** {user['college']}")
-        st.write(f"**Semester:** {user['study_year']}")
+        st.title(f"👋 Hi, {user['name']}")
         
-        if st.button("Go to 5th Semester"):
+        with st.container(border=True):
+            st.info(f"🎓 **{user['college']}** | {user['study_year']}")
+            st.write(f"📧 {user['email']}")
+        
+        st.markdown("### Quick Access")
+        if st.button("📚 Go to 5th Semester", use_container_width=True, type="primary"):
             try:
                 st.switch_page("pages/home.py")
             except:
                 st.error("pages/home.py not found")
         
-        if st.button("Logout"):
+        if st.button("🔒 Logout", use_container_width=True):
             st.session_state.authenticated = False
             st.session_state.user = None
             st.rerun()
@@ -282,7 +168,7 @@ def show_semester_selection():
 def main():
     """Main function to run the login page"""
     st.set_page_config(
-        page_title="UniMate AI - Login",
+        page_title="UniMate AI",
         layout="centered",
         page_icon="🎓",
         initial_sidebar_state="collapsed"
@@ -299,7 +185,6 @@ def main():
     if not st.session_state.authenticated:
         show_login_page()
     else:
-        # User is logged in, show semester selection
         show_semester_selection()
 
 if __name__ == "__main__":
