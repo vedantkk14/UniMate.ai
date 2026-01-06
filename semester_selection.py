@@ -83,8 +83,9 @@ def show_semester_selection():
             st.markdown("<br>", unsafe_allow_html=True) # Spacer
             
             if st.button("Enter 6th Sem", use_container_width=True, key="sem_6"):
-                st.session_state.selected_semester = "6th Semester"
-                st.switch_page("pages/sem6_home.py")
+                st.toast("Sem 6th is coming soon!", icon="🚧")
+                # st.session_state.selected_semester = "6th Semester"
+                # st.switch_page("pages/sem6_home.py")
 
 # Future Semesters (Visual Placeholders)
     st.markdown("#### Upcoming Modules")
@@ -137,8 +138,7 @@ def show_semester_selection():
     stat1, stat2, stat3, stat4 = st.columns(4)
     stat1.metric("🎓 Current Sem", user['study_year'])
     stat2.metric("📚 Modules", "4 Available")
-    stat3.metric("🔥 Streak", "3 Days")
-    stat4.metric("🤖 AI Status", "Online")
+    stat3.metric("🤖 AI Status", "Online")
 
 def main():
     """Main function for testing independent execution"""

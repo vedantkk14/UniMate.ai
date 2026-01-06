@@ -1,6 +1,5 @@
 # for ANN
 
-# langchain libraries
 import os
 import re
 import streamlit as st
@@ -44,6 +43,14 @@ if "user" not in st.session_state or st.session_state.user is None:
     if st.button("Go to Login", key="login_redirect"):
         st.switch_page("login.py")
     st.stop()
+
+st.markdown("""
+    <style>
+    [data-testid="stSidebarNav"] {
+        display: none;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 def chat_model():
     repo_id = 'meta-llama/Meta-Llama-3.1-8B-Instruct'
@@ -145,6 +152,7 @@ def load_and_create_vectordb(pdf_path='pdfs/ann_tb.pdf',
                         test_mode=False):
     """
     Load PDF, clean text, create chunks and build FAISS vector database.
+    Includes OCR fallback for scanned PDFs.
     """
     embeddings = get_embeddings()
 
@@ -162,7 +170,7 @@ def load_and_create_vectordb(pdf_path='pdfs/ann_tb.pdf',
         except Exception as e:
             st.warning(f"⚠️ Could not load existing database: {str(e)}. Creating new one...")
 
-    # ============= CREATE NEW VECTOR DATABASE =============
+    # CREATE NEW VECTOR DATABASE
     st.info("📄 No existing database found. Creating new vector database...")
     
     try:
@@ -171,66 +179,66 @@ def load_and_create_vectordb(pdf_path='pdfs/ann_tb.pdf',
             st.error(f"❌ PDF file not found at: {pdf_path}")
             return None
         
-        # Load PDF
-        st.info(f"📖 Loading PDF from: {pdf_path}")
+        # 1. Try Standard Loading First
+        st.info(f"📖 Attempting standard text extraction from: {pdf_path}")
         loader = PyPDFLoader(pdf_path)
         pages = loader.load()
         
-        # Apply test mode if enabled
         if test_mode:
-            st.warning("🧪 Test mode enabled - processing only first 10 pages")
-            pages = pages[:10]
+            st.warning("🧪 Test mode enabled - processing only first 3 pages")
+            pages = pages[:3] # Reduced to 3 for OCR performance testing
         
-        st.info(f"📑 Loaded {len(pages)} pages from PDF")
-        
-        # Extract raw text
         raw_text = ""
-        progress_bar = st.progress(0)
-        status_text = st.empty()
-        
-        for i, page in enumerate(pages):
-            status_text.text(f"Extracting text from page {i + 1}/{len(pages)}...")
-            page_text = page.page_content
-            if page_text:
-                raw_text += page_text + "\n\n"
-            progress_bar.progress((i + 1) / len(pages))
-        
-        progress_bar.empty()
-        status_text.empty()
-        
-        # DEBUG: Show raw text stats
+        for page in pages:
+            raw_text += page.page_content + "\n\n"
+
+        # 2. Check if Scanned (OCR Fallback)
+        if not raw_text.strip():
+            st.warning("⚠️ Standard extraction failed (Scanned PDF detected). Switching to OCR... This will take longer.")
+            
+            try:
+                from pdf2image import convert_from_path
+                
+                # Convert PDF to images
+                st.info("🖼️ Converting PDF pages to images...")
+                images = convert_from_path(pdf_path)
+                
+                if test_mode:
+                    images = images[:3]
+                
+                total_pages = len(images)
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                
+                raw_text = ""
+                
+                for i, image in enumerate(images):
+                    status_text.text(f"🔍 OCR Processing page {i + 1}/{total_pages}...")
+                    
+                    # Extract text from image using Tesseract
+                    # custom_config = r'--oem 3 --psm 6' # Optional: tune Tesseract
+                    page_text = pytesseract.image_to_string(image)
+                    raw_text += page_text + "\n\n"
+                    
+                    progress_bar.progress((i + 1) / total_pages)
+                
+                progress_bar.empty()
+                status_text.empty()
+                
+            except Exception as e:
+                st.error(f"❌ OCR Failed. Make sure Tesseract and Poppler are installed on the system.\nError: {e}")
+                return None
+
+        # 3. Resume Standard Processing
         st.info(f"📊 Raw text extracted: {len(raw_text)} characters")
         
-        # Show sample of raw text
-        with st.expander("🔍 View Raw Text Sample (First 500 chars)", expanded=False):
-            st.text(raw_text[:500])
-        
         if not raw_text.strip():
-            st.error("❌ No text extracted from PDF. The PDF may be scanned or image-based.")
-            st.info("💡 Tip: For scanned PDFs, you need OCR. Check the OCR implementation guide.")
+            st.error("❌ OCR also failed to extract text.")
             return None
         
         # Clean the text
         st.info("🧹 Cleaning and preprocessing text...")
         cleaned_text = clean_text(raw_text)
-        
-        # DEBUG: Show cleaned text stats
-        st.info(f"📊 After cleaning: {len(cleaned_text)} characters")
-        
-        # Show sample of cleaned text
-        with st.expander("🔍 View Cleaned Text Sample (First 500 chars)", expanded=False):
-            st.text(cleaned_text[:500])
-        
-        if not cleaned_text.strip():
-            st.error("❌ No text remaining after cleaning. The cleaning function is too aggressive.")
-            st.warning("⚠️ Using raw text instead...")
-            cleaned_text = raw_text  # Fallback to raw text
-        
-        if len(cleaned_text) < 100:
-            st.error(f"❌ Too little text extracted ({len(cleaned_text)} chars). Something is wrong.")
-            return None
-        
-        st.success(f"✅ Text ready: {len(cleaned_text)} characters")
         
         # Split text into chunks
         st.info("✂️ Splitting text into chunks...")
@@ -245,14 +253,10 @@ def load_and_create_vectordb(pdf_path='pdfs/ann_tb.pdf',
         st.success(f"✅ Created {len(chunks)} text chunks")
         
         if len(chunks) == 0:
-            st.error("❌ No chunks created. Text splitting failed.")
+            st.error("❌ No chunks created.")
             return None
         
-        # Show sample chunk
-        with st.expander("🔍 View Sample Chunk", expanded=False):
-            st.text(chunks[0] if chunks else "No chunks available")
-        
-        # Create documents from chunks
+        # Create documents
         documents = [Document(page_content=chunk) for chunk in chunks]
         
         # Create vector database

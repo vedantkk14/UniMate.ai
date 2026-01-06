@@ -92,8 +92,7 @@ def show_login_page():
             with col2:
                 college = st.text_input("College/University *", placeholder="ABC Institute", key="signup_college")
                 study_year = st.selectbox("Current Semester *", 
-                    ["Select semester...", "1st Semester", "2nd Semester", "3rd Semester", 
-                     "4th Semester", "5th Semester", "6th Semester", 
+                    ["Select semester...", "5th Semester", "6th Semester", 
                      "7th Semester", "8th Semester"], key="signup_year")
                 department = st.text_input("Department", placeholder="CS/IT (Optional)", key="signup_dept")
             
